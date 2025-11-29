@@ -1,0 +1,59 @@
+${if:genreNotFound}
+<div class="empty-state">
+  <div class="empty-icon">❌</div>
+  <p class="empty-text">ジャンルが見つかりませんでした</p>
+  <button id="back-button" class="btn-primary mt-4">ホームに戻る</button>
+</div>
+${endif}
+${if:needsLocation}
+<div class="empty-state">
+  <div class="empty-icon">📍</div>
+  <p class="empty-text">位置情報が必要です</p>
+  <button id="back-button" class="btn-primary mt-4">戻る</button>
+</div>
+${endif}
+${if:hasContent}
+<div class="genre-stores-page-container">
+  <!-- ヘッダー -->
+  <div class="genre-stores-header">
+    <button 
+      id="back-button"
+      class="btn-back"
+      aria-label="戻る"
+    >
+      <span class="text-lg">←</span>
+      <span>戻る</span>
+    </button>
+    <h1 class="genre-stores-title">
+      <span class="genre-icon-large">${genreIcon}</span>
+      ${genreName}
+    </h1>
+  </div>
+  
+  <!-- 説明 -->
+  <div class="info-box blue">
+    <p>
+      📍 現在地から5km以内の店舗を距離順に表示しています（${storesCount}件）
+    </p>
+  </div>
+  
+  <!-- 地図 -->
+  <div id="genre-stores-map" class="genre-stores-map"></div>
+  
+  <!-- 店舗リスト -->
+  <div class="genre-stores-list-section">
+    <h3 class="genre-stores-list-title">近くの${genreName}の特売情報</h3>
+    <ul id="stores-list" class="stores-list">
+      ${storesHTML}
+    </ul>
+  </div>
+  
+  ${if:noStores}
+  <div class="empty-state">
+    <div class="empty-icon">🔍</div>
+    <p class="empty-text">近くに該当する店舗が見つかりませんでした</p>
+    <p class="text-gray-400 text-sm mt-2">範囲を広げるか、別のジャンルをお試しください</p>
+  </div>
+  ${endif}
+</div>
+${endif}

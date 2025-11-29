@@ -3,9 +3,12 @@ import { searchItems, filterByPrice, sortByPrice } from '../utils/search.js';
 import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { escapeHtml } from '../utils/helpers.js';
+import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * 検索結果ページを描画
+ * 検索結果ページを描画（分離版）
+ * HTMLは外部テンプレート、CSSはカスタムクラスを使用
+ * 
  * @param {string} query - 検索クエリ
  * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
  * @param {Object} filters - フィルター設定 {minPrice, maxPrice, maxDistance, sortBy}
@@ -63,156 +66,105 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         return storeWithDistance.distance <= maxDistance;
     });
 
-    // 結果のHTML生成
-    const resultsHTML = finalResults.map(item => {
+    // 結果のHTML生成（テンプレートを使用）
+    const resultPromises = finalResults.map(async item => {
         const storeWithDistance = sortByDistance([item.store], userLocation)[0];
-
-        return `
-      <div class="bg-white rounded-lg shadow-md p-5 hover:shadow-lg transition-shadow">
-        <div class="flex items-start gap-4">
-          <!-- 商品情報 -->
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-gray-800 mb-2">
-              ${escapeHtml(item.name)}
-            </h3>
-            <div class="text-3xl font-bold text-red-600 mb-3">
-              ¥${item.price.toLocaleString()}
-            </div>
-            
-            <!-- 店舗情報 -->
-            <div class="space-y-1 text-sm text-gray-600">
-              <div class="flex items-center gap-2">
-                <span>🏪</span>
-                <span class="font-medium">${escapeHtml(item.store.name)}</span>
+        const itemData = {
+            itemName: escapeHtml(item.name),
+            itemPrice: item.price.toLocaleString(),
+            storeName: escapeHtml(item.store.name),
+            distance: storeWithDistance.distance.toFixed(1),
+            storeId: item.store.id
+        };
+        try {
+            return await loadAndRenderTemplate('/src/templates/components/search-result-item.html', itemData);
+        } catch (error) {
+            return `
+            <div class="search-result-card">
+              <div class="flex items-start gap-4">
+                <div class="flex-1">
+                  <h3 class="text-xl font-bold text-gray-800 mb-2">${itemData.itemName}</h3>
+                  <div class="text-3xl font-bold text-red-600 mb-3">¥${itemData.itemPrice}</div>
+                  <div class="space-y-1 text-sm text-gray-600">
+                    <div class="flex items-center gap-2"><span>🏪</span><span class="font-medium">${itemData.storeName}</span></div>
+                    <div class="flex items-center gap-2"><span>📍</span><span>${itemData.distance} km</span></div>
+                  </div>
+                </div>
+                <button class="btn-store-view" onclick="window.location.hash = '/store/${itemData.storeId}'">店舗を見る →</button>
               </div>
-              <div class="flex items-center gap-2">
-                <span>📍</span>
-                <span>${storeWithDistance.distance.toFixed(1)} km</span>
-              </div>
             </div>
-          </div>
-          
-          <!-- 店舗へのリンク -->
-          <button 
-            class="btn-primary text-sm whitespace-nowrap"
-            onclick="window.location.hash = '/store/${item.store.id}'"
-          >
-            店舗を見る →
-          </button>
-        </div>
-      </div>
-    `;
-    }).join('');
+          `;
+        }
+    });
+    const resultsHTML = (await Promise.all(resultPromises)).join('');
 
     const queryText = escapeHtml(query);
 
+    // テンプレートデータを準備
+    const templateData = {
+        queryText: queryText,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        maxDistance: maxDistance,
+        sortByPriceAscSelected: sortBy === 'price-asc' ? 'selected' : '',
+        sortByPriceDescSelected: sortBy === 'price-desc' ? 'selected' : '',
+        sortByDistanceSelected: sortBy === 'distance' ? 'selected' : '',
+        resultsCount: finalResults.length,
+        resultsHTML: resultsHTML,
+        noResults: finalResults.length === 0
+    };
+
+    // テンプレートを読み込んでレンダリング
+    try {
+        return await loadAndRenderTemplate('/src/templates/pages/search-results-page.html', templateData);
+    } catch (error) {
+        console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
+        return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, sortBy, finalResults.length, resultsHTML);
+    }
+}
+
+/**
+ * フォールバック用HTML（テンプレート読み込み失敗時）
+ */
+function getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, sortBy, resultsCount, resultsHTML) {
     return `
     <div class="space-y-6">
-      <!-- ヘッダー -->
       <div class="flex items-center gap-4">
-        <button 
-          id="back-button"
-          class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 transition-colors"
-        >
-          ← 戻る
-        </button>
-        <h1 class="text-3xl font-bold text-gray-800">
-          「${queryText}」の検索結果
-        </h1>
+        <button id="back-button" class="btn-back"><span class="text-lg">←</span><span>戻る</span></button>
+        <h1 class="text-3xl font-bold text-gray-800">「${queryText}」の検索結果</h1>
       </div>
-      
-      <!-- フィルター＆ソートパネル -->
-      <div class="bg-white rounded-lg shadow-md p-5">
+      <div class="filter-panel">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- 最小価格 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              最小価格
-            </label>
-            <input 
-              type="number" 
-              id="min-price"
-              value="${minPrice}"
-              min="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-2">最小価格</label>
+            <input type="number" id="min-price" value="${minPrice}" min="0" class="filter-input" />
           </div>
-          
-          <!-- 最大価格 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              最大価格
-            </label>
-            <input 
-              type="number" 
-              id="max-price"
-              value="${maxPrice}"
-              min="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-2">最大価格</label>
+            <input type="number" id="max-price" value="${maxPrice}" min="0" class="filter-input" />
           </div>
-          
-          <!-- 最大距離 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              最大距離（km）
-            </label>
-            <input 
-              type="number" 
-              id="max-distance"
-              value="${maxDistance}"
-              min="1"
-              max="50"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-2">最大距離（km）</label>
+            <input type="number" id="max-distance" value="${maxDistance}" min="1" max="50" class="filter-input" />
           </div>
-          
-          <!-- ソート -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              並び順
-            </label>
-            <select 
-              id="sort-by"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">並び順</label>
+            <select id="sort-by" class="filter-select">
               <option value="price-asc" ${sortBy === 'price-asc' ? 'selected' : ''}>価格（安い順）</option>
               <option value="price-desc" ${sortBy === 'price-desc' ? 'selected' : ''}>価格（高い順）</option>
               <option value="distance" ${sortBy === 'distance' ? 'selected' : ''}>距離（近い順）</option>
             </select>
           </div>
         </div>
-        
-        <!-- 適用ボタン -->
         <div class="mt-4 flex justify-end">
-          <button 
-            id="apply-filters"
-            class="btn-primary"
-          >
-            フィルターを適用
-          </button>
+          <button id="apply-filters" class="btn-primary-large">フィルターを適用 →</button>
         </div>
       </div>
-      
-      <!-- 検索結果数 -->
-      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-        <p class="text-blue-800 font-medium">
-          ${finalResults.length}件の商品が見つかりました
-        </p>
+      <div class="info-box blue">
+        <p>${resultsCount}件の商品が見つかりました</p>
       </div>
-      
-      <!-- 検索結果一覧 -->
-      <div class="space-y-4">
-        ${resultsHTML}
-      </div>
-      
-      ${finalResults.length === 0 ? `
-        <div class="text-center py-12">
-          <div class="text-6xl mb-4">🔍</div>
-          <p class="text-gray-500 text-lg mb-2">検索結果が見つかりませんでした</p>
-          <p class="text-gray-400 text-sm">別のキーワードやフィルター設定をお試しください</p>
-        </div>
-      ` : ''}
+      <div class="space-y-4">${resultsHTML}</div>
+      ${resultsCount === 0 ? `<div class="empty-state"><div class="empty-icon">🔍</div><p class="empty-text">検索結果が見つかりませんでした</p><p class="text-gray-400 text-sm mt-2">別のキーワードやフィルター設定をお試しください</p></div>` : ''}
     </div>
   `;
 }
@@ -251,4 +203,5 @@ export function attachSearchResultsPageEvents(query) {
             window.location.hash = `/search?${params.toString()}`;
         });
     }
+}
 }

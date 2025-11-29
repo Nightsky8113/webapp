@@ -1,0 +1,218 @@
+/**
+ * コンポーネント専用のCSS
+ * カスタムクラスを定義して、JSからUnoCSSクラス名を分離
+ */
+
+/* ボタンスタイル */
+.btn-back {
+  background-color: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-back:hover {
+  background-color: #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary-large {
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary-large:hover {
+  background-color: #2563eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.btn-search {
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-search:hover {
+  background-color: #2563eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-store-view {
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-store-view:hover {
+  background-color: #2563eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+/* カードスタイル */
+.search-option-card {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid;
+  text-align: left;
+}
+
+.search-option-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.search-option-card.product {
+  background: linear-gradient(to bottom right, #3b82f6, #2563eb);
+  color: white;
+  border-color: #60a5fa;
+}
+
+.search-option-card.product:hover {
+  border-color: #93c5fd;
+}
+
+.search-option-card.location {
+  background: linear-gradient(to bottom right, #10b981, #059669);
+  color: white;
+  border-color: #34d399;
+}
+
+.search-option-card.location:hover {
+  border-color: #6ee7b7;
+}
+
+.store-card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.store-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+  border-color: #93c5fd;
+}
+
+/* ジャンルカードボタン（サンプルに基づいたシンプルなデザイン） */
+.genre-card-button {
+  display: inline-block;
+  background-color: #4CAF50;
+  color: white;
+  padding: 20px 30px;
+  text-decoration: none;
+  border-radius: 8px;
+  margin: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-width: 120px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.genre-card-button:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.genre-card-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.genre-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  display: block;
+}
+
+/* 入力フィールド */
+.search-input {
+  width: 100%;
+  padding-left: 3.5rem;
+  padding-right: 6rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.75rem;
+  font-size: 1.125rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* 情報ボックス */
+.info-box {
+  border-left-width: 4px;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.info-box.blue {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.info-box.green {
+  background-color: #f0fdf4;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+/* 商品表示 */
+.item-highlight {
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  border-left: 4px solid #ef4444;
+}

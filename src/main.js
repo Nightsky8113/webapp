@@ -1,6 +1,8 @@
 import { initRouter } from './router.js';
 import { getDefaultLocation } from './utils/location.js';
 import 'virtual:uno.css';
+import './styles/components.css';
+import './styles/pages.css';
 
 /**
  * アプリ初期化

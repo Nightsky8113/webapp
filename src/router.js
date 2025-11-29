@@ -160,9 +160,16 @@ export async function renderPage(userLocation) {
         if (route.attachEvents) {
             // 検索ページの場合はクエリを渡す
             if (window.location.hash.includes('/search')) {
-                route.attachEvents(queryParams.q || '');
+                const result = route.attachEvents(queryParams.q || '');
+                if (result instanceof Promise) {
+                    await result;
+                }
             } else {
-                route.attachEvents();
+                // 非同期のイベントハンドラーに対応
+                const result = route.attachEvents();
+                if (result instanceof Promise) {
+                    await result;
+                }
             }
         }
     } catch (error) {

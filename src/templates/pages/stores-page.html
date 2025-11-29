@@ -1,0 +1,46 @@
+${if:needsLocation}
+<div class="empty-state">
+  <div class="empty-icon">📍</div>
+  <p class="empty-text">位置情報が必要です</p>
+  <button id="back-button" class="btn-primary mt-4">戻る</button>
+</div>
+${endif}
+${if:hasContent}
+<div class="space-y-6">
+  <!-- ヘッダー -->
+  <div class="flex items-center gap-4">
+    <button 
+      id="back-button"
+      class="btn-back"
+      aria-label="戻る"
+    >
+      <span class="text-lg">←</span>
+      <span>戻る</span>
+    </button>
+    <h1 class="text-3xl font-bold text-gray-800">近くの店舗（距離順）</h1>
+  </div>
+  
+  <!-- 説明 -->
+  <div class="info-box green">
+    <p>
+      📍 現在地から近い順に最大6件の店舗を表示しています
+    </p>
+  </div>
+  
+  <!-- 店舗一覧 -->
+  <div 
+    id="stores-container" 
+    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+  >
+    ${storesHTML}
+  </div>
+  
+  ${if:noStores}
+  <div class="empty-state">
+    <div class="empty-icon">🏪</div>
+    <p class="empty-text">近くに店舗が見つかりませんでした</p>
+  </div>
+  ${endif}
+</div>
+${endif}
+

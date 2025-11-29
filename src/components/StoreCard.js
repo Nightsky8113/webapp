@@ -1,13 +1,16 @@
 import { escapeHtml, formatPrice } from '../utils/helpers.js';
+import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * 店舗カードコンポーネント
+ * 店舗カードコンポーネント（分離版）
+ * HTMLは外部テンプレート、CSSはカスタムクラスを使用
+ * 
  * @param {Object} store - 店舗データ
  * @param {Object} flyer - チラシデータ
  * @param {number} distance - 現在地からの距離（km）
- * @returns {string} HTML文字列
+ * @returns {Promise<string>} HTML文字列
  */
-export function StoreCard(store, flyer, distance) {
+export async function StoreCard(store, flyer, distance) {
     if (!store) return '';
 
     const storeName = escapeHtml(store.name);
@@ -18,9 +21,35 @@ export function StoreCard(store, flyer, distance) {
     const walkMinutes = store.summary_walk_minutes || '-';
     const station = escapeHtml(store.nearest_station || '');
 
+    // テンプレートデータを準備
+    const templateData = {
+        id: store.id,
+        storeName: storeName,
+        thumbnailUrl: thumbnailUrl,
+        showDistance: distance !== undefined,
+        distanceText: distanceText,
+        station: station,
+        walkMinutes: walkMinutes,
+        itemName: itemName,
+        itemPrice: itemPrice
+    };
+
+    // テンプレートを読み込んでレンダリング
+    try {
+        return await loadAndRenderTemplate('/src/templates/components/store-card.html', templateData);
+    } catch (error) {
+        console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
+        // フォールバック: インラインHTML（既存の方法）
+        return getStoreCardHTMLFallback(storeName, thumbnailUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
+    }
+}
+
+/**
+ * フォールバック用HTML（テンプレート読み込み失敗時）
+ */
+function getStoreCardHTMLFallback(storeName, thumbnailUrl, distanceText, station, walkMinutes, itemName, itemPrice, storeId, distance) {
     return `
-    <div class="card-hover" data-store-id="${store.id}">
-      <!-- チラシサムネイル -->
+    <div class="store-card" data-store-id="${storeId}">
       <div class="relative">
         <img 
           src="${thumbnailUrl}" 
@@ -28,35 +57,36 @@ export function StoreCard(store, flyer, distance) {
           class="w-full h-48 object-cover"
           loading="lazy"
         />
-        <div class="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+        <div class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
           NEW
         </div>
       </div>
-      
-      <!-- カード本体 -->
-      <div class="p-4">
-        <h3 class="font-bold text-lg mb-3 text-gray-800">${storeName}</h3>
-        
-        <div class="space-y-2 text-sm text-gray-600">
-          <!-- 距離 -->
+      <div class="p-5">
+        <h3 class="font-bold text-xl mb-4 text-gray-800">${storeName}</h3>
+        <div class="space-y-3 text-sm text-gray-600 mb-4">
+          ${distance !== undefined ? `
           <div class="flex items-center gap-2">
-            <span class="text-lg">📍</span>
-            <span>現在地から ${distanceText}</span>
+            <span class="text-xl">📍</span>
+            <span class="font-medium">現在地から ${distanceText}</span>
           </div>
-          
-          <!-- 最寄り駅 -->
+          ` : ''}
           <div class="flex items-center gap-2">
-            <span class="text-lg">🚶</span>
+            <span class="text-xl">🚶</span>
             <span>${station}から徒歩${walkMinutes}分</span>
           </div>
-          
-          <!-- おすすめ商品 -->
-          <div class="flex items-center gap-2 mt-3 pt-3 border-t">
-            <span class="text-lg">🏷️</span>
-            <div class="flex-1">
-              <div class="text-gray-700 font-medium">${itemName}</div>
-              <div class="text-red-600 font-bold text-lg">${itemPrice}</div>
+          <div class="item-highlight">
+            <div class="flex items-start gap-2">
+              <span class="text-xl">🏷️</span>
+              <div class="flex-1">
+                <div class="text-gray-700 font-medium text-base mb-1">${itemName}</div>
+                <div class="text-red-600 font-bold text-xl">${itemPrice}</div>
+              </div>
             </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t">
+          <div class="btn-store-view">
+            詳細を見る →
           </div>
         </div>
       </div>

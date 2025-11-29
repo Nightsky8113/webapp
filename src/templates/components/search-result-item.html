@@ -1,0 +1,31 @@
+<div class="search-result-card">
+  <div class="flex items-start gap-4">
+    <!-- 商品情報 -->
+    <div class="flex-1">
+      <h3 class="text-xl font-bold text-gray-800 mb-2">${itemName}</h3>
+      <div class="text-3xl font-bold text-red-600 mb-3">¥${itemPrice}</div>
+      
+      <!-- 店舗情報 -->
+      <div class="space-y-1 text-sm text-gray-600">
+        <div class="flex items-center gap-2">
+          <span>🏪</span>
+          <span class="font-medium">${storeName}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>📍</span>
+          <span>${distance} km</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 店舗へのリンク -->
+    <button 
+      class="btn-store-view"
+      onclick="window.location.hash = '/store/${storeId}'"
+      aria-label="${storeName}の店舗詳細を見る"
+    >
+      店舗を見る →
+    </button>
+  </div>
+</div>
+

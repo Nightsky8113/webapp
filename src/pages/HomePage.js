@@ -1,8 +1,11 @@
 import { getFlyers, getTodayFlyers } from '../services/dataService.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
+import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * ホームページを描画
+ * ホームページを描画（分離版）
+ * HTMLは外部テンプレート、CSSはカスタムクラスを使用
+ * 
  * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  * @returns {Promise<string>} HTML文字列
  */
@@ -18,72 +21,77 @@ export async function HomePage(userLocation) {
     const todayStores = allStores.filter(s => storeIds.includes(s.id));
 
     // 今日更新されたチラシの店舗カードHTML
-    const todayStoresHTML = todayFlyers
-        .map(flyer => {
-            const store = todayStores.find(s => s.id === flyer.store_id);
-            if (!store) return '';
-            return StoreCard(store, flyer, undefined); // 距離は表示しない
-        })
-        .join('');
+    const todayStoresHTMLPromises = todayFlyers.map(async flyer => {
+        const store = todayStores.find(s => s.id === flyer.store_id);
+        if (!store) return '';
+        return await StoreCard(store, flyer, undefined); // 距離は表示しない
+    });
+    const todayStoresHTML = (await Promise.all(todayStoresHTMLPromises)).join('');
 
+    // テンプレートデータを準備
+    const templateData = {
+        hasTodayFlyers: todayFlyers.length > 0,
+        noTodayFlyers: todayFlyers.length === 0,
+        todayStoresHTML: todayStoresHTML
+    };
+
+    // テンプレートを読み込んでレンダリング
+    try {
+        return await loadAndRenderTemplate('/src/templates/pages/home-page.html', templateData);
+    } catch (error) {
+        console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
+        // フォールバック: インラインHTML（既存の方法）
+        return getHomePageHTMLFallback(todayFlyers, todayStoresHTML);
+    }
+}
+
+/**
+ * フォールバック用HTML（テンプレート読み込み失敗時）
+ */
+function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
     return `
     <div class="space-y-8">
-      <!-- ヒーローセクション -->
-      <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-8 rounded-xl shadow-lg">
-        <h1 class="text-3xl md:text-4xl font-bold mb-3">🛒 チラシ検索</h1>
-        <p class="text-blue-100 text-lg">近くのお得な商品をすぐに見つけよう</p>
+      <div class="hero-section">
+        <h1>🛒 チラシ検索</h1>
+        <p>近くのお得な商品をすぐに見つけよう</p>
       </div>
-
-      <!-- お店を探す -->
       <section>
-        <h2 class="text-2xl font-bold text-gray-800 mb-5">お店を探す</h2>
+        <h2 class="section-title">お店を探す</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- 商品から探す -->
-          <div 
-            id="search-by-product"
-            class="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all border-2 border-blue-200 hover:border-blue-400"
-          >
-            <div class="text-center">
-              <div class="text-5xl mb-4">🛍️</div>
-              <h3 class="text-xl font-bold text-gray-800 mb-2">商品から探す</h3>
-              <p class="text-gray-600 text-sm mb-4">商品名で検索またはジャンルから選択</p>
-              <p class="text-blue-600 text-xs">位置情報から5km圏内の商品を安い順で表示</p>
+          <button id="search-by-product" class="search-option-card product">
+            <div class="flex flex-col items-center md:items-start">
+              <div class="card-icon">🛍️</div>
+              <h3 class="card-title">商品から探す</h3>
+              <p class="card-description">商品名で検索またはジャンルから選択できます</p>
+              <div class="card-info">📍 位置情報から5km圏内の商品を安い順で表示</div>
+              <div class="card-action"><span>選択する</span><span class="arrow">→</span></div>
             </div>
-          </div>
-
-          <!-- 位置情報から探す -->
-          <div 
-            id="search-by-location"
-            class="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400"
-          >
-            <div class="text-center">
-              <div class="text-5xl mb-4">📍</div>
-              <h3 class="text-xl font-bold text-gray-800 mb-2">位置情報から探す</h3>
-              <p class="text-gray-600 text-sm mb-4">現在地から近い順に店舗を表示</p>
-              <p class="text-green-600 text-xs">最大6店舗を距離順で表示</p>
+          </button>
+          <button id="search-by-location" class="search-option-card location">
+            <div class="flex flex-col items-center md:items-start">
+              <div class="card-icon">📍</div>
+              <h3 class="card-title">位置情報から探す</h3>
+              <p class="card-description">現在地から近い順に店舗を表示します</p>
+              <div class="card-info">🏪 最大6店舗を距離順で表示</div>
+              <div class="card-action"><span>選択する</span><span class="arrow">→</span></div>
             </div>
-          </div>
+          </button>
         </div>
       </section>
-
-      <!-- 今日更新されたチラシ -->
       ${todayFlyers.length > 0 ? `
         <section>
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-2xl font-bold text-gray-800">🆕 更新日時が今日のチラシ</h2>
+            <h2 class="section-title">🆕 更新日時が今日のチラシ</h2>
           </div>
-          <div 
-            id="today-flyers-container" 
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
+          <div id="today-flyers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             ${todayStoresHTML}
           </div>
         </section>
       ` : `
         <section>
-          <div class="bg-gray-50 rounded-lg p-8 text-center">
-            <div class="text-4xl mb-3">📰</div>
-            <p class="text-gray-500">今日更新されたチラシはありません</p>
+          <div class="empty-state">
+            <div class="empty-icon">📰</div>
+            <p class="empty-text">今日更新されたチラシはありません</p>
           </div>
         </section>
       `}
