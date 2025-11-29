@@ -204,4 +204,3 @@ export function attachSearchResultsPageEvents(query) {
         });
     }
 }
-}
