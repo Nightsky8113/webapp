@@ -1,0 +1,33 @@
+flyer-app/
+├── index.html
+├── vite.config.js
+├── uno.config.js
+├── package.json
+├── .gitignore
+├── README.md
+├── src/
+│   ├── main.js
+│   ├── router.js
+│   ├── style.css
+│   ├── data/
+│   │   ├── stores.json
+│   │   ├── flyers.json
+│   │   ├── items.json
+│   │   └── genres.json
+│   ├── utils/
+│   │   ├── distance.js
+│   │   └── helpers.js
+│   ├── services/
+│   │   └── dataService.js
+│   ├── components/
+│   │   ├── StoreCard.js
+│   │   ├── GenreCard.js
+│   │   └── Header.js
+│   └── pages/
+│       ├── HomePage.js
+│       ├── StoresPage.js
+│       ├── GenreStoresPage.js
+│       └── StoreDetailPage.js
+└── public/
+    └── images/
+        └── (チラシ画像)

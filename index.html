@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="近くのスーパーのチラシからお得な商品を検索">
+    <title>チラシ検索アプリ</title>
+
+    <!-- UnoCSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- ヘッダー -->
+    <header id="app-header" class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" id="logo">
+                    🛒 チラシ検索
+                </h1>
+                <nav class="hidden md:flex gap-4">
+                    <a href="#/home" class="text-gray-600 hover:text-blue-600 transition-colors">ホーム</a>
+                    <a href="#/stores" class="text-gray-600 hover:text-blue-600 transition-colors">店舗一覧</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツエリア -->
+    <main id="app" class="max-w-7xl mx-auto px-4 py-6">
+        <!-- ページコンテンツがここに動的に挿入されます -->
+        <div class="flex items-center justify-center min-h-[60vh]">
+            <div class="text-center">
+                <div class="text-6xl mb-4">📱</div>
+                <p class="text-gray-500">読み込み中...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center text-gray-600 text-sm">
+            <p>&copy; 2025 チラシ検索アプリ. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- メインJSファイル -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
