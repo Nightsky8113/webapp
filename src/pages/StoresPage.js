@@ -11,6 +11,22 @@ export async function StoresPage(userLocation) {
     const stores = await getStores();
     const flyers = await getFlyers();
 
+    // 位置情報がない場合はエラー表示
+    if (!userLocation || !userLocation.lat || !userLocation.lng) {
+        return `
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">📍</div>
+        <p class="text-gray-500 text-lg mb-4">位置情報が必要です</p>
+        <button 
+          id="back-button"
+          class="btn-primary"
+        >
+          戻る
+        </button>
+      </div>
+    `;
+    }
+
     // 距離順にソート（最大6件）
     const storesWithDistance = sortByDistance(stores, userLocation).slice(0, 6);
 

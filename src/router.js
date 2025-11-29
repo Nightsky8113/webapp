@@ -1,5 +1,6 @@
 import { HomePage, attachHomePageEvents } from './pages/HomePage.js';
 import { StoresPage, attachStoresPageEvents } from './pages/StoresPage.js';
+import { GenrePage, attachGenrePageEvents } from './pages/GenrePage.js';
 import { GenreStoresPage, attachGenreStoresPageEvents } from './pages/GenreStoresPage.js';
 import { StoreDetailPage, attachStoreDetailPageEvents } from './pages/StoreDetailPage.js';
 import { SearchResultsPage, attachSearchResultsPageEvents } from './pages/SearchResultsPage.js';
@@ -11,6 +12,10 @@ const routes = {
     '/home': {
         render: HomePage,
         attachEvents: attachHomePageEvents
+    },
+    '/genre': {
+        render: GenrePage,
+        attachEvents: attachGenrePageEvents
     },
     '/stores': {
         render: StoresPage,
@@ -97,7 +102,7 @@ function getCurrentRoute() {
 
 /**
  * ページを描画
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
+ * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  */
 export async function renderPage(userLocation) {
     const appContainer = document.getElementById('app');
@@ -118,6 +123,14 @@ export async function renderPage(userLocation) {
 
     try {
         const { route, params, queryParams } = getCurrentRoute();
+
+        // URLパラメータから位置情報を取得（あれば）
+        if (queryParams.lat && queryParams.lng) {
+            userLocation = {
+                lat: parseFloat(queryParams.lat),
+                lng: parseFloat(queryParams.lng)
+            };
+        }
 
         // ページを描画
         let html;
@@ -171,7 +184,7 @@ export async function renderPage(userLocation) {
 
 /**
  * ルーターを初期化
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
+ * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  */
 export function initRouter(userLocation) {
     // ハッシュ変更時にページを再描画

@@ -1,49 +1,6 @@
 import { initRouter } from './router.js';
-import { getFromLocalStorage, saveToLocalStorage } from './utils/helpers.js';
+import { getDefaultLocation } from './utils/location.js';
 import 'virtual:uno.css';
-
-/**
- * ユーザーの位置情報を取得
- * @returns {Promise<Object>} {lat, lng}
- */
-async function getUserLocation() {
-    // LocalStorageから取得を試みる
-    const cachedLocation = getFromLocalStorage('userLocation');
-    if (cachedLocation) {
-        console.log('キャッシュされた位置情報を使用:', cachedLocation);
-        return cachedLocation;
-    }
-
-    // Geolocation APIで取得を試みる
-    if ('geolocation' in navigator) {
-        try {
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    timeout: 5000,
-                    maximumAge: 600000 // 10分間キャッシュ
-                });
-            });
-
-            const location = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-            };
-
-            // LocalStorageに保存
-            saveToLocalStorage('userLocation', location);
-            console.log('現在地を取得:', location);
-
-            return location;
-        } catch (error) {
-            console.warn('位置情報の取得に失敗:', error.message);
-        }
-    }
-
-    // デフォルト位置（東京駅周辺）
-    const defaultLocation = { lat: 35.6812, lng: 139.7671 };
-    console.log('デフォルト位置を使用:', defaultLocation);
-    return defaultLocation;
-}
 
 /**
  * アプリ初期化
@@ -52,11 +9,12 @@ async function initApp() {
     console.log('🚀 アプリを初期化中...');
 
     try {
-        // ユーザー位置情報を取得
-        const userLocation = await getUserLocation();
+        // 位置情報は初期化時には取得しない（ユーザーが選択後に取得）
+        // デフォルト位置を設定（必要に応じて使用）
+        const defaultLocation = getDefaultLocation();
 
-        // ルーターを初期化
-        initRouter(userLocation);
+        // ルーターを初期化（位置情報はnullで開始）
+        initRouter(null);
 
         // ハッシュがない場合はホームへ
         if (!window.location.hash) {

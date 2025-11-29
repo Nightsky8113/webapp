@@ -29,6 +29,22 @@ export async function GenreStoresPage(genreId, userLocation) {
     `;
     }
 
+    // 位置情報がない場合はエラー表示
+    if (!userLocation || !userLocation.lat || !userLocation.lng) {
+        return `
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">📍</div>
+        <p class="text-gray-500 text-lg mb-4">位置情報が必要です</p>
+        <button 
+          id="back-button"
+          class="btn-primary"
+        >
+          戻る
+        </button>
+      </div>
+    `;
+    }
+
     // 5km以内にフィルタリング & 距離順ソート
     const nearbyStores = filterByDistance(stores, userLocation, 5);
     const storesWithDistance = sortByDistance(nearbyStores, userLocation);

@@ -1,56 +1,30 @@
-import { getStores, getFlyers, getGenres, getTodayFlyers } from '../services/dataService.js';
-import { sortByDistance } from '../utils/distance.js';
+import { getFlyers, getTodayFlyers } from '../services/dataService.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
-import { GenreCard, attachGenreCardEvents } from '../components/GenreCard.js';
-import { debounce } from '../utils/helpers.js';
-import { getFavoriteStores } from '../utils/favorites.js';
 
 /**
  * ホームページを描画
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
+ * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  * @returns {Promise<string>} HTML文字列
  */
 export async function HomePage(userLocation) {
-    const stores = await getStores();
-    const flyers = await getFlyers();
-    const genres = await getGenres();
     const todayFlyers = await getTodayFlyers();
+    
+    // 店舗情報を取得
+    const { getStores } = await import('../services/dataService.js');
+    const allStores = await getStores();
+    
+    // 今日更新されたチラシの店舗IDを取得
+    const storeIds = [...new Set(todayFlyers.map(f => f.store_id))];
+    const todayStores = allStores.filter(s => storeIds.includes(s.id));
 
-    // 距離順にソート
-    const storesWithDistance = sortByDistance(stores, userLocation);
-
-    // お気に入り店舗
-    const favoriteStores = getFavoriteStores(stores);
-    const favoriteStoresWithDistance = sortByDistance(favoriteStores, userLocation);
-    const favoritesHTML = favoriteStoresWithDistance
-        .map(store => {
-            const flyer = flyers.find(f => f.store_id === store.id && f.is_latest);
-            return StoreCard(store, flyer, store.distance);
-        })
-        .join('');
-
-    // 近くの店舗（上位3件）
-    const nearbyStores = storesWithDistance.slice(0, 3);
-    const nearbyStoresHTML = nearbyStores
-        .map(store => {
-            const flyer = flyers.find(f => f.store_id === store.id && f.is_latest);
-            return StoreCard(store, flyer, store.distance);
-        })
-        .join('');
-
-    // 今日更新されたチラシ
+    // 今日更新されたチラシの店舗カードHTML
     const todayStoresHTML = todayFlyers
         .map(flyer => {
-            const store = stores.find(s => s.id === flyer.store_id);
+            const store = todayStores.find(s => s.id === flyer.store_id);
             if (!store) return '';
-
-            const storeWithDistance = storesWithDistance.find(s => s.id === store.id);
-            return StoreCard(store, flyer, storeWithDistance?.distance);
+            return StoreCard(store, flyer, undefined); // 距離は表示しない
         })
         .join('');
-
-    // ジャンル一覧
-    const genresHTML = genres.map(genre => GenreCard(genre)).join('');
 
     return `
     <div class="space-y-8">
@@ -60,61 +34,35 @@ export async function HomePage(userLocation) {
         <p class="text-blue-100 text-lg">近くのお得な商品をすぐに見つけよう</p>
       </div>
 
-      <!-- 検索バー -->
-      <div class="relative">
-        <input
-          type="text"
-          id="search-input"
-          placeholder="商品名で検索..."
-          class="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-        />
-        <span class="absolute left-4 top-4 text-2xl">🔍</span>
-      </div>
-
-      <!-- 商品から探す -->
+      <!-- お店を探す -->
       <section>
-        <div class="flex items-center justify-between mb-5">
-          <h2 class="text-2xl font-bold text-gray-800">商品から探す</h2>
-        </div>
-        <div 
-          id="genres-container" 
-          class="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          ${genresHTML}
-        </div>
-      </section>
-
-      <!-- お気に入り店舗 -->
-      ${favoriteStores.length > 0 ? `
-        <section>
-          <div class="flex items-center justify-between mb-5">
-            <h2 class="text-2xl font-bold text-gray-800">❤️ お気に入りの店舗</h2>
-          </div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-5">お店を探す</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 商品から探す -->
           <div 
-            id="favorite-stores-container" 
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            id="search-by-product"
+            class="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all border-2 border-blue-200 hover:border-blue-400"
           >
-            ${favoritesHTML}
+            <div class="text-center">
+              <div class="text-5xl mb-4">🛍️</div>
+              <h3 class="text-xl font-bold text-gray-800 mb-2">商品から探す</h3>
+              <p class="text-gray-600 text-sm mb-4">商品名で検索またはジャンルから選択</p>
+              <p class="text-blue-600 text-xs">位置情報から5km圏内の商品を安い順で表示</p>
+            </div>
           </div>
-        </section>
-      ` : ''}
 
-      <!-- 近くの店舗 -->
-      <section>
-        <div class="flex items-center justify-between mb-5">
-          <h2 class="text-2xl font-bold text-gray-800">📍 近くの店舗</h2>
-          <a 
-            href="#/stores" 
-            class="text-blue-600 text-sm flex items-center gap-1 hover:text-blue-700 transition-colors font-medium"
+          <!-- 位置情報から探す -->
+          <div 
+            id="search-by-location"
+            class="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400"
           >
-            すべて見る →
-          </a>
-        </div>
-        <div 
-          id="nearby-stores-container" 
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          ${nearbyStoresHTML}
+            <div class="text-center">
+              <div class="text-5xl mb-4">📍</div>
+              <h3 class="text-xl font-bold text-gray-800 mb-2">位置情報から探す</h3>
+              <p class="text-gray-600 text-sm mb-4">現在地から近い順に店舗を表示</p>
+              <p class="text-green-600 text-xs">最大6店舗を距離順で表示</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -122,7 +70,7 @@ export async function HomePage(userLocation) {
       ${todayFlyers.length > 0 ? `
         <section>
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-2xl font-bold text-gray-800">🆕 今日更新されたチラシ</h2>
+            <h2 class="text-2xl font-bold text-gray-800">🆕 更新日時が今日のチラシ</h2>
           </div>
           <div 
             id="today-flyers-container" 
@@ -131,7 +79,14 @@ export async function HomePage(userLocation) {
             ${todayStoresHTML}
           </div>
         </section>
-      ` : ''}
+      ` : `
+        <section>
+          <div class="bg-gray-50 rounded-lg p-8 text-center">
+            <div class="text-4xl mb-3">📰</div>
+            <p class="text-gray-500">今日更新されたチラシはありません</p>
+          </div>
+        </section>
+      `}
     </div>
   `;
 }
@@ -140,19 +95,33 @@ export async function HomePage(userLocation) {
  * ホームページのイベントを設定
  */
 export function attachHomePageEvents() {
-    // 店舗カードのクリックイベント（お気に入り）
-    const favoriteContainer = document.getElementById('favorite-stores-container');
-    if (favoriteContainer) {
-        attachStoreCardEvents(favoriteContainer, (storeId) => {
-            window.location.hash = `/store/${storeId}`;
+    // 商品から探すボタン
+    const searchByProduct = document.getElementById('search-by-product');
+    if (searchByProduct) {
+        searchByProduct.addEventListener('click', async () => {
+            try {
+                // 位置情報を取得してからジャンルページへ遷移
+                const { requestUserLocation } = await import('../utils/location.js');
+                const userLocation = await requestUserLocation();
+                window.location.hash = `/genre?lat=${userLocation.lat}&lng=${userLocation.lng}`;
+            } catch (error) {
+                alert('位置情報の取得に失敗しました。位置情報の許可をお願いします。');
+            }
         });
     }
 
-    // 店舗カードのクリックイベント（近くの店舗）
-    const nearbyContainer = document.getElementById('nearby-stores-container');
-    if (nearbyContainer) {
-        attachStoreCardEvents(nearbyContainer, (storeId) => {
-            window.location.hash = `/store/${storeId}`;
+    // 位置情報から探すボタン
+    const searchByLocation = document.getElementById('search-by-location');
+    if (searchByLocation) {
+        searchByLocation.addEventListener('click', async () => {
+            try {
+                // 位置情報を取得してから店舗一覧ページへ遷移
+                const { requestUserLocation } = await import('../utils/location.js');
+                const userLocation = await requestUserLocation();
+                window.location.hash = `/stores?lat=${userLocation.lat}&lng=${userLocation.lng}`;
+            } catch (error) {
+                alert('位置情報の取得に失敗しました。位置情報の許可をお願いします。');
+            }
         });
     }
 
@@ -161,44 +130,6 @@ export function attachHomePageEvents() {
     if (todayContainer) {
         attachStoreCardEvents(todayContainer, (storeId) => {
             window.location.hash = `/store/${storeId}`;
-        });
-    }
-
-    // ジャンルカードのクリックイベント
-    const genresContainer = document.getElementById('genres-container');
-    if (genresContainer) {
-        attachGenreCardEvents(genresContainer, (genreId) => {
-            window.location.hash = `/genre/${genreId}/stores`;
-        });
-    }
-
-    // 検索入力のデバウンス処理
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        const handleSearch = debounce((query) => {
-            if (query.trim().length > 0) {
-                // Phase 2: 検索機能実装済み
-                window.location.hash = `/search?q=${encodeURIComponent(query)}`;
-            }
-        }, 300);
-
-        searchInput.addEventListener('input', (e) => {
-            handleSearch(e.target.value);
-        });
-
-        // Enterキーでも検索
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && searchInput.value.trim().length > 0) {
-                window.location.hash = `/search?q=${encodeURIComponent(searchInput.value)}`;
-            }
-        });
-    }
-
-    // ロゴクリックでホームに戻る
-    const logo = document.getElementById('logo');
-    if (logo) {
-        logo.addEventListener('click', () => {
-            window.location.hash = '/home';
         });
     }
 }
