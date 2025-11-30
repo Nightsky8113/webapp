@@ -110,8 +110,12 @@ function getCurrentRoute() {
  * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  */
 export async function renderPage(userLocation) {
+    console.log('🔍 renderPageが呼び出されました', { userLocation, hash: window.location.hash });
     const appContainer = document.getElementById('app');
-    if (!appContainer) return;
+    if (!appContainer) {
+        console.error('❌ appコンテナが見つかりません');
+        return;
+    }
 
     // ページ遷移中の読み込み状態を表示してユーザーに視覚的フィードバックを提供
     appContainer.innerHTML = `
@@ -128,6 +132,10 @@ export async function renderPage(userLocation) {
 
     try {
         const { route, params, queryParams } = getCurrentRoute();
+        console.log('📍 現在のルート:', { route: route ? '見つかりました' : '見つかりませんでした', params, queryParams });
+        if (!route) {
+            throw new Error('ルートが見つかりません: ' + window.location.hash);
+        }
 
         // URLのクエリパラメータから位置情報を取得（位置情報検索時にURLに含まれる）
         if (queryParams.lat && queryParams.lng) {
