@@ -91,17 +91,41 @@ export function clearMarkers() {
 }
 
 /**
- * 地図の表示範囲を調整（すべてのマーカーを含む）
+ * 地図の表示範囲を調整（すべてのマーカーとユーザー位置を含む）
+ * @param {Object} userLocation - ユーザーの位置情報 {lat, lng} (オプション)
  */
-export function fitBounds() {
-    if (!mapInstance || markers.length === 0) {
+export function fitBounds(userLocation = null) {
+    if (!mapInstance) {
         return;
     }
 
-    const bounds = L.latLngBounds(
-        markers.map(marker => marker.getLatLng())
-    );
-    mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    const bounds = L.latLngBounds();
+    
+    // すべてのマーカーを含める
+    markers.forEach(marker => {
+        bounds.extend(marker.getLatLng());
+    });
+    
+    // ユーザーの現在地も範囲に含める
+    if (userLocation && userLocation.lat && userLocation.lng) {
+        bounds.extend([userLocation.lat, userLocation.lng]);
+    } else {
+        // ユーザーの現在地マーカーを探して範囲に含める
+        if (mapInstance) {
+            mapInstance.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer.getPopup) {
+                    const popup = layer.getPopup();
+                    if (popup && popup.getContent() === "あなたの現在地") {
+                        bounds.extend(layer.getLatLng());
+                    }
+                }
+            });
+        }
+    }
+
+    if (bounds.isValid()) {
+        mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    }
 }
 
 /**

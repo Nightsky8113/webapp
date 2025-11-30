@@ -35,12 +35,19 @@ ${if:hasContent}
   <div class="store-detail-card">
     <!-- チラシ画像 -->
     <div class="relative">
-      <img 
-        src="${imageUrl}"
-        alt="${storeName}のチラシ"
-        class="w-full h-80 object-cover"
-        loading="lazy"
-      />
+      <a 
+        href="${imageUrl}" 
+        data-lightbox="store-detail-flyer" 
+        data-title="${storeName}のチラシ"
+        class="block cursor-pointer"
+      >
+        <img 
+          src="${imageUrl}"
+          alt="${storeName}のチラシ"
+          class="w-full h-80 object-cover"
+          loading="lazy"
+        />
+      </a>
       <div class="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-md">
         <span class="text-sm text-gray-600">更新日: ${updatedAt}</span>
       </div>

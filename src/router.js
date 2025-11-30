@@ -71,8 +71,7 @@ function matchRoute(pattern, path) {
  */
 function getCurrentRoute() {
     const hash = window.location.hash.slice(1) || '/home';
-    const [pathWithQuery] = hash.split('?');
-    const path = pathWithQuery.split('?')[0];
+    const [path] = hash.split('?');
 
     // クエリパラメータを解析
     const queryParams = {};
@@ -147,7 +146,11 @@ export async function renderPage(userLocation) {
             html = await route.render(query, userLocation, filters);
         } else if (Object.keys(params).length > 0) {
             // パラメータがある場合（例: /store/1）
-            const paramValues = Object.values(params);
+            const paramValues = Object.values(params).map(val => {
+                // 数値に変換できる場合は数値に変換
+                const numVal = Number(val);
+                return !isNaN(numVal) && numVal.toString() === val ? numVal : val;
+            });
             html = await route.render(...paramValues, userLocation);
         } else {
             // パラメータがない場合

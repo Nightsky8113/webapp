@@ -3,6 +3,7 @@ import { calculateDistance } from '../utils/distance.js';
 import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
 import { isFavorite, toggleFavorite } from '../utils/favorites.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { initLightboxWithRetry } from '../utils/lightbox.js';
 
 /**
  * 店舗詳細ページを描画（分離版）
@@ -35,12 +36,16 @@ export async function StoreDetailPage(storeId, userLocation) {
         }
     }
 
-    const distance = calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        store.latitude,
-        store.longitude
-    );
+    // 位置情報がない場合の処理
+    let distance = 0;
+    if (userLocation && userLocation.lat && userLocation.lng) {
+        distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            store.latitude,
+            store.longitude
+        );
+    }
 
     // チラシから商品を取得（最大3件）
     let itemsHTML = '';
@@ -88,7 +93,7 @@ export async function StoreDetailPage(storeId, userLocation) {
         storeId: storeId,
         storeName: storeName,
         address: address,
-        distance: distance.toFixed(1),
+        distance: distance > 0 ? distance.toFixed(1) : '-',
         station: station,
         walkMinutes: store.summary_walk_minutes || '-',
         imageUrl: imageUrl,
@@ -128,7 +133,14 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
       </div>
       <div class="store-detail-card">
         <div class="relative">
-          <img src="${imageUrl}" alt="${storeName}のチラシ" class="w-full h-80 object-cover" />
+          <a 
+            href="${imageUrl}" 
+            data-lightbox="store-detail-flyer" 
+            data-title="${storeName}のチラシ"
+            class="block cursor-pointer"
+          >
+            <img src="${imageUrl}" alt="${storeName}のチラシ" class="w-full h-80 object-cover" />
+          </a>
           <div class="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-md">
             <span class="text-sm text-gray-600">更新日: ${updatedAt}</span>
           </div>
@@ -206,4 +218,10 @@ export function attachStoreDetailPageEvents() {
             favoriteButton.dataset.isFavorite = newState;
         });
     }
+
+    // Lightbox2の初期化（動的に追加された要素に対応）
+    // 少し待ってから初期化（DOMが完全に描画されるまで待つ）
+    setTimeout(() => {
+        initLightboxWithRetry(5, 200);
+    }, 300);
 }

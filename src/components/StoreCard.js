@@ -17,6 +17,7 @@ export async function StoreCard(store, flyer, distance) {
     const itemName = escapeHtml(store.summary_best_item_name);
     const itemPrice = formatPrice(store.summary_best_item_price);
     const thumbnailUrl = flyer?.thumbnail_url || 'https://via.placeholder.com/400x300?text=No+Image';
+    const imageUrl = flyer?.image_url || thumbnailUrl; // 拡大表示用の元画像URL
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
     const walkMinutes = store.summary_walk_minutes || '-';
     const station = escapeHtml(store.nearest_station || '');
@@ -26,6 +27,7 @@ export async function StoreCard(store, flyer, distance) {
         id: store.id,
         storeName: storeName,
         thumbnailUrl: thumbnailUrl,
+        imageUrl: imageUrl, // Lightbox用
         showDistance: distance !== undefined,
         distanceText: distanceText,
         station: station,
@@ -40,21 +42,21 @@ export async function StoreCard(store, flyer, distance) {
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         // フォールバック: インラインHTML（既存の方法）
-        return getStoreCardHTMLFallback(storeName, thumbnailUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
+        return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
     }
 }
 
 /**
  * フォールバック用HTML（テンプレート読み込み失敗時）
  */
-function getStoreCardHTMLFallback(storeName, thumbnailUrl, distanceText, station, walkMinutes, itemName, itemPrice, storeId, distance) {
+function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, storeId, distance) {
     return `
     <div class="store-card" data-store-id="${storeId}">
       <div class="relative">
         <img 
           src="${thumbnailUrl}" 
           alt="${storeName}のチラシ"
-          class="w-full h-48 object-cover"
+          class="w-full h-48 object-cover cursor-pointer"
           loading="lazy"
         />
         <div class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
@@ -82,11 +84,6 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, distanceText, station
                 <div class="text-red-600 font-bold text-xl">${itemPrice}</div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="mt-4 pt-4 border-t">
-          <div class="btn-store-view">
-            詳細を見る →
           </div>
         </div>
       </div>

@@ -1,0 +1,24 @@
+# チラシ検索アプリ - 環境変数設定ファイル
+# このファイルを `.env` にリネームして使用してください
+
+# ============================================
+# Supabase設定（必須）
+# ============================================
+# SupabaseプロジェクトのURL
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+
+# Supabase Anon Key（公開キー）
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key-here
+
+# ============================================
+# 外部API設定（後で追加 - コストがかかるAPI）
+# ============================================
+# Google Maps Directions API（徒歩時間計算用）
+# GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+
+# Google Cloud Vision API（OCR処理用）
+# GOOGLE_CLOUD_VISION_API_KEY=your-vision-api-key
+
+# OpenAI API（構造化処理用）
+# OPENAI_API_KEY=your-openai-api-key
+

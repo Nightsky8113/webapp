@@ -47,7 +47,10 @@ export async function StoresPage(userLocation) {
         needsLocation: false,
         hasContent: true,
         storesHTML: storesHTML,
-        noStores: storesWithDistance.length === 0
+        noStores: storesWithDistance.length === 0,
+        userLat: userLocation.lat,
+        userLng: userLocation.lng,
+        storesCount: storesWithDistance.length
     };
 
     // テンプレートを読み込んでレンダリング
@@ -72,6 +75,7 @@ function getStoresPageHTMLFallback(storesHTML, storesCount) {
       <div class="info-box green">
         <p>📍 現在地から近い順に最大6件の店舗を表示しています</p>
       </div>
+      <div id="stores-map" class="map-container"></div>
       <div id="stores-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${storesHTML}</div>
       ${storesCount === 0 ? `<div class="empty-state"><div class="empty-icon">🏪</div><p class="empty-text">近くに店舗が見つかりませんでした</p></div>` : ''}
     </div>
@@ -81,7 +85,7 @@ function getStoresPageHTMLFallback(storesHTML, storesCount) {
 /**
  * 店舗一覧ページのイベントを設定
  */
-export function attachStoresPageEvents() {
+export async function attachStoresPageEvents() {
     // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
@@ -97,4 +101,54 @@ export function attachStoresPageEvents() {
             window.location.hash = `/store/${storeId}`;
         });
     }
+
+    // 地図の初期化とマーカー表示
+    // 少し待ってから地図を初期化（DOMが完全に描画されるまで待つ）
+    setTimeout(async () => {
+        const mapContainer = document.getElementById('stores-map');
+        if (mapContainer) {
+            // URLパラメータから位置情報を取得
+            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const lat = parseFloat(urlParams.get('lat'));
+            const lng = parseFloat(urlParams.get('lng'));
+
+            if (lat && lng) {
+                const { initMap, addStoreMarker, clearMarkers, fitBounds } = await import('../utils/map.js');
+                const { getStores, getFlyers } = await import('../services/dataService.js');
+                const { sortByDistance } = await import('../utils/distance.js');
+                const { escapeHtml } = await import('../utils/helpers.js');
+
+                // 地図を初期化
+                initMap('stores-map', lat, lng);
+
+                // 店舗データを取得
+                const stores = await getStores();
+                const flyers = await getFlyers();
+                const userLocation = { lat, lng };
+                const storesWithDistance = sortByDistance(stores, userLocation).slice(0, 6);
+
+                clearMarkers();
+
+                // 店舗マーカーを追加
+                storesWithDistance.forEach(store => {
+                    const flyer = flyers.find(f => f.store_id === store.id && f.is_latest);
+                    const storeNameEscaped = escapeHtml(store.name);
+                    const distanceText = `${store.distance.toFixed(1)} km`;
+                    
+                    const popupContent = `
+                        <b>${storeNameEscaped}</b><br>
+                        📍 ${distanceText}<br>
+                        <button onclick="window.location.hash = '/store/${store.id}'" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            詳細を見る
+                        </button>
+                    `;
+
+                    addStoreMarker(store.latitude, store.longitude, store.name, popupContent);
+                });
+
+                // すべてのマーカーとユーザー位置を含むように地図の表示範囲を調整
+                fitBounds(userLocation);
+            }
+        }
+    }, 100);
 }

@@ -12,12 +12,17 @@ export async function loadTemplate(path) {
     try {
         const response = await fetch(path);
         if (!response.ok) {
-            throw new Error(`Failed to load template: ${path}`);
+            throw new Error(`Failed to load template: ${path} (${response.status} ${response.statusText})`);
         }
-        return await response.text();
+        const text = await response.text();
+        if (!text || text.trim().length === 0) {
+            throw new Error(`Template file is empty: ${path}`);
+        }
+        return text;
     } catch (error) {
-        console.error(`Template load error: ${path}`, error);
-        return '';
+        console.error(`❌ Template load error: ${path}`, error);
+        // 空文字列を返すのではなく、エラーを再スローして呼び出し側で処理できるようにする
+        throw new Error(`Template loading failed: ${path} - ${error.message}`);
     }
 }
 
@@ -68,7 +73,16 @@ export function renderTemplate(template, data = {}) {
  * @returns {Promise<string>} レンダリング後のHTML文字列
  */
 export async function loadAndRenderTemplate(path, data = {}) {
-    const template = await loadTemplate(path);
-    return renderTemplate(template, data);
+    try {
+        const template = await loadTemplate(path);
+        if (!template) {
+            throw new Error(`Template is empty: ${path}`);
+        }
+        return renderTemplate(template, data);
+    } catch (error) {
+        console.error(`❌ Failed to load and render template: ${path}`, error);
+        // エラーを再スローして、呼び出し側でフォールバック処理ができるようにする
+        throw error;
+    }
 }
 

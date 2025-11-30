@@ -3,7 +3,7 @@
  * PostgreSQLからデータを取得
  */
 
-import { supabase } from './supabase.js';
+import { supabase, supabaseInitialized } from './supabase.js';
 
 // データキャッシュ（オプション: パフォーマンス向上）
 let cache = {
