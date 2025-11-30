@@ -1,13 +1,11 @@
 /**
- * 検索ユーティリティ
- * 商品名、店舗名での検索機能を提供
+ * 商品や店舗の検索機能を提供するユーティリティ
+ * 商品名、店舗名、住所、最寄り駅などで部分一致検索を行う
  */
 
 /**
- * 商品を検索
- * @param {Array} items - 商品配列
- * @param {string} query - 検索クエリ
- * @returns {Array} 検索結果
+ * 商品名で部分一致検索を実行する
+ * 検索クエリが空の場合は全商品を返す
  */
 export function searchItems(items, query) {
     if (!query || query.trim().length === 0) {
@@ -23,10 +21,8 @@ export function searchItems(items, query) {
 }
 
 /**
- * 店舗を検索
- * @param {Array} stores - 店舗配列
- * @param {string} query - 検索クエリ
- * @returns {Array} 検索結果
+ * 店舗名、住所、最寄り駅で部分一致検索を実行する
+ * 検索クエリが空の場合は全店舗を返す
  */
 export function searchStores(stores, query) {
     if (!query || query.trim().length === 0) {
@@ -47,11 +43,7 @@ export function searchStores(stores, query) {
 }
 
 /**
- * 商品を価格でフィルタリング
- * @param {Array} items - 商品配列
- * @param {number} minPrice - 最小価格
- * @param {number} maxPrice - 最大価格
- * @returns {Array} フィルタリング結果
+ * 指定した価格範囲内の商品のみをフィルタリングする
  */
 export function filterByPrice(items, minPrice = 0, maxPrice = Infinity) {
     return items.filter(item => {
@@ -61,10 +53,7 @@ export function filterByPrice(items, minPrice = 0, maxPrice = Infinity) {
 }
 
 /**
- * 商品を価格でソート
- * @param {Array} items - 商品配列
- * @param {string} order - 'asc' or 'desc'
- * @returns {Array} ソート済み配列
+ * 商品リストを価格順（昇順または降順）にソートする
  */
 export function sortByPrice(items, order = 'asc') {
     const sorted = [...items].sort((a, b) => {
@@ -74,10 +63,7 @@ export function sortByPrice(items, order = 'asc') {
 }
 
 /**
- * チラシを更新日でソート
- * @param {Array} flyers - チラシ配列
- * @param {string} order - 'asc' or 'desc'
- * @returns {Array} ソート済み配列
+ * チラシリストを更新日時順（昇順または降順）にソートする
  */
 export function sortByDate(flyers, order = 'desc') {
     const sorted = [...flyers].sort((a, b) => {
@@ -89,9 +75,8 @@ export function sortByDate(flyers, order = 'desc') {
 }
 
 /**
- * 検索履歴を保存
- * @param {string} query - 検索クエリ
- * @param {number} maxHistory - 最大保存件数
+ * 検索クエリをLocalStorageに履歴として保存する
+ * 重複を排除し、最新の検索が先頭に来るように管理する
  */
 export function saveSearchHistory(query, maxHistory = 10) {
     if (!query || query.trim().length === 0) return;
@@ -99,13 +84,10 @@ export function saveSearchHistory(query, maxHistory = 10) {
     try {
         const history = getSearchHistory();
 
-        // 重複を削除
         const filteredHistory = history.filter(h => h !== query);
 
-        // 先頭に追加
         filteredHistory.unshift(query);
 
-        // 最大件数に制限
         const limitedHistory = filteredHistory.slice(0, maxHistory);
 
         localStorage.setItem('searchHistory', JSON.stringify(limitedHistory));
@@ -115,8 +97,7 @@ export function saveSearchHistory(query, maxHistory = 10) {
 }
 
 /**
- * 検索履歴を取得
- * @returns {Array} 検索履歴
+ * LocalStorageから保存された検索履歴を取得する
  */
 export function getSearchHistory() {
     try {
@@ -129,7 +110,7 @@ export function getSearchHistory() {
 }
 
 /**
- * 検索履歴をクリア
+ * 保存されている検索履歴をすべて削除する
  */
 export function clearSearchHistory() {
     try {

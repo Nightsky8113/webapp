@@ -2,13 +2,11 @@ import { getStores, getFlyers } from '../services/dataService.js';
 import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { searchNearbyStores } from '../services/storeSearchService.js';
 
 /**
- * 店舗一覧ページを描画（距離順、最大6件）（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
- * @returns {Promise<string>} HTML文字列
+ * 位置情報に基づいて近くの店舗一覧ページのコンテンツを生成する
+ * データベースの店舗と外部APIから取得した近くのスーパーマーケットを統合し、距離順に最大6件表示する
  */
 export async function StoresPage(userLocation) {
     const stores = await getStores();
@@ -33,11 +31,54 @@ export async function StoresPage(userLocation) {
         }
     }
 
+    // APIから近くのスーパーマーケットを検索
+    let apiStores = [];
+    try {
+        console.log('近くのスーパーマーケットを検索中...');
+        apiStores = await searchNearbyStores(
+            userLocation.lat,
+            userLocation.lng,
+            2000 // 2km以内
+        );
+        console.log(`${apiStores.length}件のスーパーマーケットが見つかりました`);
+    } catch (error) {
+        console.error('店舗検索エラー:', error);
+        // エラーが発生してもデータベースの店舗は表示する
+    }
+
+    // データベースの店舗とAPI検索結果を統合
+    // 重複を排除（同じ位置の店舗は除外）
+    const allStores = [...stores];
+    
+    apiStores.forEach(apiStore => {
+        const isDuplicate = stores.some(dbStore => {
+            // 同じ位置（±100m以内）の店舗は重複とみなす
+            const latDiff = Math.abs(dbStore.latitude - apiStore.latitude);
+            const lngDiff = Math.abs(dbStore.longitude - apiStore.longitude);
+            return latDiff < 0.001 && lngDiff < 0.001;
+        });
+        
+        if (!isDuplicate) {
+            // データベースの店舗と形式を統一
+            allStores.push({
+                ...apiStore,
+                // データベースの店舗と互換性を持たせる
+                id: apiStore.id || `api_${apiStore.latitude}_${apiStore.longitude}`,
+                name: apiStore.name,
+                latitude: apiStore.latitude,
+                longitude: apiStore.longitude,
+                address: apiStore.address || '',
+                is_from_api: true
+            });
+        }
+    });
+
     // 距離順にソート（最大6件）
-    const storesWithDistance = sortByDistance(stores, userLocation).slice(0, 6);
+    const storesWithDistance = sortByDistance(allStores, userLocation).slice(0, 6);
 
     const storesHTMLPromises = storesWithDistance.map(async store => {
-        const flyer = flyers.find(f => f.store_id === store.id && f.is_latest);
+        // APIから取得した店舗にはチラシ情報がない
+        const flyer = store.is_from_api ? null : flyers.find(f => f.store_id === store.id && f.is_latest);
         return await StoreCard(store, flyer, store.distance);
     });
     const storesHTML = (await Promise.all(storesHTMLPromises)).join('');
@@ -83,10 +124,11 @@ function getStoresPageHTMLFallback(storesHTML, storesCount) {
 }
 
 /**
- * 店舗一覧ページのイベントを設定
+ * 店舗一覧ページに必要なイベントハンドラーを設定する
+ * 戻るボタン、店舗カードのクリックイベント、地図の初期化とマーカー表示を設定する
+ * 地図初期化はDOM描画完了を待ってから実行される
  */
 export async function attachStoresPageEvents() {
-    // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -94,16 +136,19 @@ export async function attachStoresPageEvents() {
         });
     }
 
-    // 店舗カードのクリックイベント
     const container = document.getElementById('stores-container');
     if (container) {
         attachStoreCardEvents(container, (storeId) => {
+            // 外部APIから取得した店舗は詳細ページがないため、クリックしても遷移しない
+            if (typeof storeId === 'string' && storeId.startsWith('overpass_')) {
+                console.log('APIから取得した店舗のため詳細ページはありません');
+                return;
+            }
             window.location.hash = `/store/${storeId}`;
         });
     }
 
-    // 地図の初期化とマーカー表示
-    // 少し待ってから地図を初期化（DOMが完全に描画されるまで待つ）
+    // DOM描画完了後に地図を初期化し、店舗マーカーを表示する
     setTimeout(async () => {
         const mapContainer = document.getElementById('stores-map');
         if (mapContainer) {
@@ -114,33 +159,64 @@ export async function attachStoresPageEvents() {
 
             if (lat && lng) {
                 const { initMap, addStoreMarker, clearMarkers, fitBounds } = await import('../utils/map.js');
-                const { getStores, getFlyers } = await import('../services/dataService.js');
                 const { sortByDistance } = await import('../utils/distance.js');
                 const { escapeHtml } = await import('../utils/helpers.js');
+                const { searchNearbyStores } = await import('../services/storeSearchService.js');
 
                 // 地図を初期化
                 initMap('stores-map', lat, lng);
 
-                // 店舗データを取得
+                // 店舗データを取得（既にインポート済みなので再インポート不要）
                 const stores = await getStores();
                 const flyers = await getFlyers();
                 const userLocation = { lat, lng };
-                const storesWithDistance = sortByDistance(stores, userLocation).slice(0, 6);
+
+                // APIから近くのスーパーマーケットを検索
+                let apiStores = [];
+                try {
+                    apiStores = await searchNearbyStores(lat, lng, 2000);
+                } catch (error) {
+                    console.error('地図表示時の店舗検索エラー:', error);
+                }
+
+                // データベースの店舗とAPI検索結果を統合
+                const allStores = [...stores];
+                apiStores.forEach(apiStore => {
+                    const isDuplicate = stores.some(dbStore => {
+                        const latDiff = Math.abs(dbStore.latitude - apiStore.latitude);
+                        const lngDiff = Math.abs(dbStore.longitude - apiStore.longitude);
+                        return latDiff < 0.001 && lngDiff < 0.001;
+                    });
+                    if (!isDuplicate) {
+                        allStores.push({
+                            ...apiStore,
+                            id: apiStore.id || `api_${apiStore.latitude}_${apiStore.longitude}`
+                        });
+                    }
+                });
+
+                const storesWithDistance = sortByDistance(allStores, userLocation).slice(0, 6);
 
                 clearMarkers();
 
                 // 店舗マーカーを追加
                 storesWithDistance.forEach(store => {
-                    const flyer = flyers.find(f => f.store_id === store.id && f.is_latest);
+                    const flyer = store.is_from_api ? null : flyers.find(f => f.store_id === store.id && f.is_latest);
                     const storeNameEscaped = escapeHtml(store.name);
                     const distanceText = `${store.distance.toFixed(1)} km`;
+                    
+                    // APIから取得した店舗は詳細ページがないので、ボタンを表示しない
+                    const detailButton = store.is_from_api 
+                        ? '' 
+                        : `<button onclick="window.location.hash = '/store/${store.id}'" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            詳細を見る
+                        </button>`;
                     
                     const popupContent = `
                         <b>${storeNameEscaped}</b><br>
                         📍 ${distanceText}<br>
-                        <button onclick="window.location.hash = '/store/${store.id}'" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                            詳細を見る
-                        </button>
+                        ${store.is_from_api ? '<small>（APIから取得した店舗）</small>' : ''}
+                        ${detailButton}
                     `;
 
                     addStoreMarker(store.latitude, store.longitude, store.name, popupContent);

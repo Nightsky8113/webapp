@@ -5,20 +5,19 @@ import './styles/components.css';
 import './styles/pages.css';
 
 /**
- * アプリ初期化
+ * アプリケーション全体を初期化し、ルーティングとグローバルエラーハンドリングを設定する
+ * 位置情報は明示的にユーザーが検索方法を選択するまで取得しない
  */
 async function initApp() {
     console.log('🚀 アプリを初期化中...');
 
     try {
-        // 位置情報は初期化時には取得しない（ユーザーが選択後に取得）
-        // デフォルト位置を設定（必要に応じて使用）
         const defaultLocation = getDefaultLocation();
 
-        // ルーターを初期化（位置情報はnullで開始）
+        // クライアントサイドルーティングを開始（位置情報は後で取得）
         initRouter(null);
 
-        // ハッシュがない場合はホームへ
+        // URLにハッシュがない場合、デフォルトでホームページを表示
         if (!window.location.hash) {
             window.location.hash = '/home';
         }
@@ -27,7 +26,7 @@ async function initApp() {
     } catch (error) {
         console.error('❌ アプリの初期化に失敗:', error);
 
-        // エラー表示
+        // 初期化失敗時にユーザーに再読み込みを促すUIを表示
         const appContainer = document.getElementById('app');
         if (appContainer) {
             appContainer.innerHTML = `
@@ -46,18 +45,19 @@ async function initApp() {
     }
 }
 
-// DOMの読み込み完了後にアプリを初期化
+// DOM読み込み完了後にアプリを初期化（既に読み込み済みの場合は即座に実行）
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
 }
 
-// エラーハンドリング（グローバル）
+// アプリケーション全体でキャッチできなかったエラーをログに記録
 window.addEventListener('error', (event) => {
     console.error('グローバルエラー:', event.error);
 });
 
+// 未処理のPromise拒否をログに記録（非同期処理のエラー検知）
 window.addEventListener('unhandledrejection', (event) => {
     console.error('未処理のPromise拒否:', event.reason);
 });

@@ -1,24 +1,22 @@
 /**
- * 地図表示ユーティリティ
- * Leafletを使用して地図を表示
+ * Leafletを使用した地図表示機能を提供するユーティリティ
+ * 地図の初期化、マーカーの追加・削除、表示範囲の調整などの機能を管理する
  */
 
 let mapInstance = null;
 let markers = [];
 
 /**
- * Leafletが読み込まれているか確認
+ * Leafletライブラリが読み込まれているかどうかを確認する
  */
 function isLeafletLoaded() {
     return typeof L !== 'undefined';
 }
 
 /**
- * 地図を初期化
- * @param {string} containerId - 地図を表示するコンテナのID
- * @param {number} lat - 緯度
- * @param {number} lng - 経度
- * @param {number} zoom - ズームレベル
+ * 指定された位置を中心にLeaflet地図を初期化する
+ * 既存の地図インスタンスがある場合は削除してから新しい地図を作成する
+ * OpenStreetMapのタイルレイヤーを使用し、ユーザーの現在地にマーカーを表示する
  */
 export function initMap(containerId, lat, lng, zoom = 15) {
     if (!isLeafletLoaded()) {
@@ -26,14 +24,12 @@ export function initMap(containerId, lat, lng, zoom = 15) {
         return null;
     }
 
-    // 既存の地図を削除
     if (mapInstance) {
         mapInstance.remove();
         mapInstance = null;
         markers = [];
     }
 
-    // 地図を初期化
     const mapContainer = document.getElementById(containerId);
     if (!mapContainer) {
         console.error(`地図コンテナが見つかりません: ${containerId}`);
@@ -42,13 +38,11 @@ export function initMap(containerId, lat, lng, zoom = 15) {
 
     mapInstance = L.map(containerId).setView([lat, lng], zoom);
 
-    // タイルレイヤーを追加
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19
     }).addTo(mapInstance);
 
-    // 現在地マーカーを追加
     L.marker([lat, lng])
         .addTo(mapInstance)
         .bindPopup('あなたの現在地')
@@ -58,11 +52,8 @@ export function initMap(containerId, lat, lng, zoom = 15) {
 }
 
 /**
- * 店舗マーカーを追加
- * @param {number} lat - 緯度
- * @param {number} lng - 経度
- * @param {string} storeName - 店舗名
- * @param {string} popupContent - ポップアップの内容
+ * 地図上に店舗マーカーを追加する
+ * マーカーをクリックするとポップアップで店舗情報を表示する
  */
 export function addStoreMarker(lat, lng, storeName, popupContent) {
     if (!mapInstance) {
@@ -79,7 +70,8 @@ export function addStoreMarker(lat, lng, storeName, popupContent) {
 }
 
 /**
- * すべてのマーカーを削除
+ * 地図上のすべてのマーカーを削除する
+ * 新しい店舗リストを表示する前に呼び出してクリアする
  */
 export function clearMarkers() {
     markers.forEach(marker => {
@@ -91,8 +83,8 @@ export function clearMarkers() {
 }
 
 /**
- * 地図の表示範囲を調整（すべてのマーカーとユーザー位置を含む）
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng} (オプション)
+ * 地図の表示範囲を、すべてのマーカーとユーザー位置を含むように自動調整する
+ * すべての店舗と現在地が1画面に収まるようにズームレベルを調整する
  */
 export function fitBounds(userLocation = null) {
     if (!mapInstance) {
@@ -101,16 +93,13 @@ export function fitBounds(userLocation = null) {
 
     const bounds = L.latLngBounds();
     
-    // すべてのマーカーを含める
     markers.forEach(marker => {
         bounds.extend(marker.getLatLng());
     });
     
-    // ユーザーの現在地も範囲に含める
     if (userLocation && userLocation.lat && userLocation.lng) {
         bounds.extend([userLocation.lat, userLocation.lng]);
     } else {
-        // ユーザーの現在地マーカーを探して範囲に含める
         if (mapInstance) {
             mapInstance.eachLayer(layer => {
                 if (layer instanceof L.Marker && layer.getPopup) {
@@ -129,7 +118,8 @@ export function fitBounds(userLocation = null) {
 }
 
 /**
- * 地図を削除
+ * 地図インスタンスを完全に削除し、メモリを解放する
+ * ページ遷移時など、地図が不要になった際に呼び出す
  */
 export function removeMap() {
     if (mapInstance) {

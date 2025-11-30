@@ -6,12 +6,8 @@ import { loadAndRenderTemplate } from '../utils/template.js';
 import { initLightboxWithRetry } from '../utils/lightbox.js';
 
 /**
- * 店舗詳細ページを描画（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {number} storeId - 店舗ID
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
- * @returns {Promise<string>} HTML文字列
+ * 指定された店舗の詳細情報ページのコンテンツを生成する
+ * 店舗情報、最新チラシ画像、商品情報、距離、お気に入り機能などを表示する
  */
 export async function StoreDetailPage(storeId, userLocation) {
     const store = await getStoreById(storeId);
@@ -182,10 +178,10 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
 }
 
 /**
- * 店舗詳細ページのイベントを設定
+ * 店舗詳細ページに必要なイベントハンドラーを設定する
+ * 戻るボタン、お気に入りボタン、画像拡大表示（Lightbox2）の初期化を設定する
  */
 export function attachStoreDetailPageEvents() {
-    // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -193,14 +189,12 @@ export function attachStoreDetailPageEvents() {
         });
     }
 
-    // お気に入りボタン
     const favoriteButton = document.getElementById('favorite-button');
     if (favoriteButton) {
         favoriteButton.addEventListener('click', () => {
             const storeId = parseInt(favoriteButton.dataset.storeId);
             const newState = toggleFavorite(storeId);
 
-            // ボタンの表示を更新
             if (newState) {
                 favoriteButton.className = 'btn-favorite active';
                 favoriteButton.innerHTML = `
@@ -219,8 +213,7 @@ export function attachStoreDetailPageEvents() {
         });
     }
 
-    // Lightbox2の初期化（動的に追加された要素に対応）
-    // 少し待ってから初期化（DOMが完全に描画されるまで待つ）
+    // DOM描画完了後にLightbox2を初期化して、動的に追加された画像にも対応する
     setTimeout(() => {
         initLightboxWithRetry(5, 200);
     }, 300);

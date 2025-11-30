@@ -1,17 +1,18 @@
 /**
- * Lightbox2ユーティリティ
- * 動的に追加された要素に対してLightbox2を初期化する
+ * Lightbox2ライブラリを使用した画像拡大表示機能を提供するユーティリティ
+ * 動的に追加された画像要素にも対応できるよう、初期化処理を管理する
  */
 
 /**
- * jQueryとLightbox2が読み込まれているか確認
+ * jQueryとLightbox2ライブラリが読み込まれているかどうかを確認する
  */
 export function isLightboxLoaded() {
     return typeof window.jQuery !== 'undefined' && typeof window.lightbox !== 'undefined';
 }
 
 /**
- * Lightbox2を初期化（動的に追加された要素に対応）
+ * Lightbox2を初期化し、画像拡大表示の設定を行う
+ * 動的に追加された要素にも対応できるよう、再初期化処理を実行する
  */
 export function initLightbox() {
     if (!isLightboxLoaded()) {
@@ -21,7 +22,6 @@ export function initLightbox() {
 
     try {
         if (typeof window.lightbox !== 'undefined') {
-            // Lightbox2のオプションを設定
             window.lightbox.option({
                 'resizeDuration': 200,
                 'wrapAround': false,
@@ -34,7 +34,6 @@ export function initLightbox() {
                 'showImageNumberLabel': false
             });
 
-            // 動的に追加された要素に対してLightboxを再初期化
             window.lightbox.init();
             console.log('✅ Lightbox2 initialized');
             return true;
@@ -47,9 +46,9 @@ export function initLightbox() {
 }
 
 /**
- * Lightbox2の初期化を試みる（複数回試行可能）
- * @param {number} maxRetries - 最大リトライ回数
- * @param {number} delay - リトライ間隔（ms）
+ * Lightbox2の初期化を自動リトライ機能付きで実行する
+ * ライブラリの読み込みが遅延している場合でも、最大指定回数まで繰り返し試行する
+ * 動的にコンテンツが追加されるページ遷移後などに使用する
  */
 export function initLightboxWithRetry(maxRetries = 5, delay = 200) {
     let retries = 0;

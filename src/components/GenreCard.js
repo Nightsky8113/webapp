@@ -2,11 +2,8 @@ import { escapeHtml } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * ジャンルカードコンポーネント（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {Object} genre - ジャンルデータ
- * @returns {Promise<string>} HTML文字列
+ * ジャンル情報を表示するカードコンポーネントを生成する
+ * ジャンル名とアイコンを表示し、クリックでジャンル別店舗検索ページへ遷移できるようにする
  */
 export async function GenreCard(genre) {
     if (!genre) return '';
@@ -14,19 +11,16 @@ export async function GenreCard(genre) {
     const genreName = escapeHtml(genre.name);
     const icon = genre.icon || '📦';
 
-    // テンプレートデータを準備
     const templateData = {
         id: genre.id,
         genreName: genreName,
         icon: icon
     };
 
-    // テンプレートを読み込んでレンダリング
     try {
         return await loadAndRenderTemplate('/src/templates/components/genre-card.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        // フォールバック: インラインHTML（既存の方法）
         return `
         <button
           class="genre-card"
@@ -42,14 +36,12 @@ export async function GenreCard(genre) {
 }
 
 /**
- * ジャンルカードのクリックイベントを設定
- * @param {HTMLElement} container - コンテナ要素
- * @param {Function} onCardClick - クリック時のコールバック
+ * ジャンルカードのクリックイベントをイベントデリゲーションで設定する
+ * 動的に追加されるカードにも対応できるよう、コンテナ要素で一括管理する
  */
 export function attachGenreCardEvents(container, onCardClick) {
     if (!container) return;
 
-    // イベントデリゲーション
     container.addEventListener('click', async (e) => {
         const card = e.target.closest('[data-genre-id]');
         if (card) {

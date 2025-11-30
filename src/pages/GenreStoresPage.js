@@ -5,12 +5,8 @@ import { loadAndRenderTemplate } from '../utils/template.js';
 import { initMap, addStoreMarker, clearMarkers, fitBounds } from '../utils/map.js';
 
 /**
- * ジャンル別店舗一覧ページを描画（5km以内）（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {number} genreId - ジャンルID
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
- * @returns {Promise<string>} HTML文字列
+ * 指定されたジャンルの商品を取り扱う店舗一覧ページのコンテンツを生成する
+ * ユーザー位置から5km以内の店舗を抽出し、各店舗で最も安い商品情報と距離を表示する
  */
 export async function GenreStoresPage(genreId, userLocation) {
     const genre = await getGenreById(genreId);
@@ -165,10 +161,10 @@ function getGenreStoresPageHTMLFallback(genreName, icon, storesHTML, storesCount
 }
 
 /**
- * ジャンル別店舗一覧ページのイベントを設定
+ * ジャンル別店舗一覧ページに必要なイベントハンドラーを設定する
+ * 戻るボタン、地図の初期化とマーカー表示、店舗リストのクリックイベントを設定する
  */
 export async function attachGenreStoresPageEvents() {
-    // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -176,25 +172,19 @@ export async function attachGenreStoresPageEvents() {
         });
     }
 
-    // 地図の初期化とマーカー表示
     const mapContainer = document.getElementById('genre-stores-map');
     if (mapContainer) {
-        // URLパラメータから位置情報を取得
         const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
         const lat = parseFloat(urlParams.get('lat'));
         const lng = parseFloat(urlParams.get('lng'));
 
         if (lat && lng) {
-            // 地図を初期化
             initMap('genre-stores-map', lat, lng);
 
-            // 店舗リストから位置情報を取得してマーカーを追加
-            const storeItems = document.querySelectorAll('.genre-store-item');
             const { getStoresByGenreId, getFlyers, getItemsByGenreId } = await import('../services/dataService.js');
             const { filterByDistance, sortByDistance } = await import('../utils/distance.js');
             const { formatPrice } = await import('../utils/helpers.js');
 
-            // URLからgenreIdを取得
             const hash = window.location.hash;
             const genreIdMatch = hash.match(/\/genre\/(\d+)\/stores/);
             if (genreIdMatch) {
@@ -236,7 +226,6 @@ export async function attachGenreStoresPageEvents() {
         }
     }
 
-    // 店舗リストのクリックイベント
     const storesList = document.getElementById('stores-list');
     if (storesList) {
         storesList.addEventListener('click', (e) => {

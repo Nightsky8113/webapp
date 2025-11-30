@@ -22,3 +22,14 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 # OpenAI API（構造化処理用）
 # OPENAI_API_KEY=your-openai-api-key
 
+# ============================================
+# 店舗検索API設定（オプション）
+# ============================================
+# 店舗検索に使用するAPIプロバイダー
+# 'overpass' = Overpass API（無料・デフォルト）
+# 'places' = Google Places API（有料・後で追加可能）
+VITE_STORE_SEARCH_API=overpass
+
+# Google Places API（将来的に使用する場合）
+# VITE_GOOGLE_PLACES_API_KEY=your-google-places-api-key
+

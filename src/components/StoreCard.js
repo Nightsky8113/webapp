@@ -2,52 +2,50 @@ import { escapeHtml, formatPrice } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * 店舗カードコンポーネント（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {Object} store - 店舗データ
- * @param {Object} flyer - チラシデータ
- * @param {number} distance - 現在地からの距離（km）
- * @returns {Promise<string>} HTML文字列
+ * 店舗情報を表示するカードコンポーネントを生成する
+ * 店舗名、チラシ画像、最安商品情報、距離、最寄り駅などの情報を表示する
+ * 外部APIから取得した店舗には商品情報がない場合があるため、その場合は表示を調整する
  */
 export async function StoreCard(store, flyer, distance) {
     if (!store) return '';
 
     const storeName = escapeHtml(store.name);
-    const itemName = escapeHtml(store.summary_best_item_name);
-    const itemPrice = formatPrice(store.summary_best_item_price);
+    const itemName = store.summary_best_item_name ? escapeHtml(store.summary_best_item_name) : null;
+    const itemPrice = store.summary_best_item_price ? formatPrice(store.summary_best_item_price) : null;
     const thumbnailUrl = flyer?.thumbnail_url || 'https://via.placeholder.com/400x300?text=No+Image';
-    const imageUrl = flyer?.image_url || thumbnailUrl; // 拡大表示用の元画像URL
+    const imageUrl = flyer?.image_url || thumbnailUrl;
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
-    const walkMinutes = store.summary_walk_minutes || '-';
+    const walkMinutes = store.summary_walk_minutes || null;
     const station = escapeHtml(store.nearest_station || '');
+    const isFromAPI = store.is_from_api || false;
 
-    // テンプレートデータを準備
     const templateData = {
         id: store.id,
         storeName: storeName,
         thumbnailUrl: thumbnailUrl,
-        imageUrl: imageUrl, // Lightbox用
+        imageUrl: imageUrl,
         showDistance: distance !== undefined,
         distanceText: distanceText,
         station: station,
         walkMinutes: walkMinutes,
         itemName: itemName,
-        itemPrice: itemPrice
+        itemPrice: itemPrice,
+        hasItemInfo: itemName && itemPrice,
+        hasStationInfo: station && walkMinutes,
+        isFromAPI: isFromAPI,
+        address: store.address || ''
     };
 
-    // テンプレートを読み込んでレンダリング
     try {
         return await loadAndRenderTemplate('/src/templates/components/store-card.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        // フォールバック: インラインHTML（既存の方法）
         return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
     }
 }
 
 /**
- * フォールバック用HTML（テンプレート読み込み失敗時）
+ * テンプレート読み込み失敗時に使用するフォールバックHTMLを生成する
  */
 function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, storeId, distance) {
     return `
@@ -92,14 +90,12 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
 }
 
 /**
- * 店舗カードのクリックイベントを設定
- * @param {HTMLElement} container - コンテナ要素
- * @param {Function} onCardClick - クリック時のコールバック
+ * 店舗カードのクリックイベントをイベントデリゲーションで設定する
+ * 動的に追加されるカードにも対応できるよう、コンテナ要素で一括管理する
  */
 export function attachStoreCardEvents(container, onCardClick) {
     if (!container) return;
 
-    // イベントデリゲーション: 親要素で一括管理
     container.addEventListener('click', (e) => {
         const card = e.target.closest('[data-store-id]');
         if (card) {

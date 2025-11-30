@@ -1,12 +1,11 @@
 /**
- * テンプレートユーティリティ
- * HTMLテンプレートの読み込みと変数置換を管理
+ * HTMLテンプレートの読み込みと変数置換を管理するユーティリティ
+ * HTMLファイルからJavaScriptを分離するために使用され、動的なコンテンツ生成を可能にする
  */
 
 /**
- * HTMLテンプレートファイルを読み込む
- * @param {string} path - テンプレートファイルのパス
- * @returns {Promise<string>} テンプレートHTML文字列
+ * 指定されたパスのHTMLテンプレートファイルを非同期で読み込む
+ * ファイルが見つからない場合や空の場合はエラーをスローし、呼び出し側でフォールバック処理ができるようにする
  */
 export async function loadTemplate(path) {
     try {
@@ -21,27 +20,22 @@ export async function loadTemplate(path) {
         return text;
     } catch (error) {
         console.error(`❌ Template load error: ${path}`, error);
-        // 空文字列を返すのではなく、エラーを再スローして呼び出し側で処理できるようにする
         throw new Error(`Template loading failed: ${path} - ${error.message}`);
     }
 }
 
 /**
- * テンプレート文字列内の変数を置換
- * @param {string} template - テンプレート文字列
- * @param {Object} data - 置換用データ
- * @returns {string} 置換後のHTML文字列
+ * テンプレート文字列内の変数、条件分岐、配列ループを処理してHTMLを生成する
+ * ${key}形式の変数置換、${if:key}...${endif}形式の条件分岐、${each:array}...${endeach}形式のループ処理に対応
  */
 export function renderTemplate(template, data = {}) {
     let html = template;
     
-    // ${key}形式の変数を置換
     Object.keys(data).forEach(key => {
         const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
         html = html.replace(regex, data[key]);
     });
     
-    // 条件分岐の処理 (${if:key} ... ${endif})
     html = html.replace(/\$\{if:([^}]+)\}([\s\S]*?)\$\{endif\}/g, (match, condition, content) => {
         const conditionValue = data[condition];
         if (conditionValue && conditionValue !== false && conditionValue !== '') {
@@ -50,7 +44,6 @@ export function renderTemplate(template, data = {}) {
         return '';
     });
     
-    // 配列のループ処理 (${each:array} ... ${endeach})
     html = html.replace(/\$\{each:([^}]+)\}([\s\S]*?)\$\{endeach\}/g, (match, arrayKey, content) => {
         const array = data[arrayKey] || [];
         return array.map(item => {
@@ -67,10 +60,8 @@ export function renderTemplate(template, data = {}) {
 }
 
 /**
- * HTMLテンプレートファイルを読み込んでレンダリング
- * @param {string} path - テンプレートファイルのパス
- * @param {Object} data - 置換用データ
- * @returns {Promise<string>} レンダリング後のHTML文字列
+ * テンプレートファイルを読み込み、データを適用してレンダリング後のHTML文字列を返す
+ * テンプレート読み込みと変数置換を1つの処理として実行する便利関数
  */
 export async function loadAndRenderTemplate(path, data = {}) {
     try {
@@ -81,7 +72,6 @@ export async function loadAndRenderTemplate(path, data = {}) {
         return renderTemplate(template, data);
     } catch (error) {
         console.error(`❌ Failed to load and render template: ${path}`, error);
-        // エラーを再スローして、呼び出し側でフォールバック処理ができるようにする
         throw error;
     }
 }

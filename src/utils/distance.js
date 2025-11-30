@@ -1,16 +1,15 @@
 /**
- * Haversine公式を使用して2点間の距離を計算
- * @param {number} lat1 - 地点1の緯度
- * @param {number} lon1 - 地点1の経度
- * @param {number} lat2 - 地点2の緯度
- * @param {number} lon2 - 地点2の経度
- * @returns {number} 距離（km）
+ * Haversine公式を使用して2点間の距離を計算するユーティリティ
+ * 緯度・経度から地球表面上の実際の距離（キロメートル）を計算する
+ */
+
+/**
+ * 2つの座標間の距離をHaversine公式で計算する
+ * 地球を球体と仮定して、より正確な距離を算出する
  */
 export function calculateDistance(lat1, lon1, lat2, lon2) {
-    // 地球の半径（km）
     const R = 6371;
 
-    // ラジアンに変換
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
 
@@ -26,19 +25,15 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * 度をラジアンに変換
- * @param {number} deg - 度
- * @returns {number} ラジアン
+ * 度数からラジアンに変換する補助関数
  */
 function toRad(deg) {
     return deg * (Math.PI / 180);
 }
 
 /**
- * 距離でソート（昇順）
- * @param {Array} stores - 店舗の配列
- * @param {Object} userLocation - ユーザーの位置 {lat, lng}
- * @returns {Array} ソート済みの店舗配列
+ * 店舗リストをユーザー位置からの距離順（近い順）にソートする
+ * 各店舗オブジェクトにdistanceプロパティを追加して返す
  */
 export function sortByDistance(stores, userLocation) {
     return stores
@@ -55,11 +50,8 @@ export function sortByDistance(stores, userLocation) {
 }
 
 /**
- * 指定した範囲内の店舗をフィルタリング
- * @param {Array} stores - 店舗の配列
- * @param {Object} userLocation - ユーザーの位置 {lat, lng}
- * @param {number} maxDistance - 最大距離（km）
- * @returns {Array} フィルタリング済みの店舗配列
+ * 指定した距離範囲内の店舗のみをフィルタリングして返す
+ * ユーザー位置から最大距離以内の店舗のみを抽出する
  */
 export function filterByDistance(stores, userLocation, maxDistance = 5) {
     return stores.filter(store => {

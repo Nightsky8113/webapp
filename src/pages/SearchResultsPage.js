@@ -6,13 +6,8 @@ import { escapeHtml } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * 検索結果ページを描画（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {string} query - 検索クエリ
- * @param {Object} userLocation - ユーザーの位置情報 {lat, lng}
- * @param {Object} filters - フィルター設定 {minPrice, maxPrice, maxDistance, sortBy}
- * @returns {Promise<string>} HTML文字列
+ * 商品検索結果ページのコンテンツを生成する
+ * 商品名で検索し、価格・距離でフィルタリング、価格順または距離順でソートして表示する
  */
 export async function SearchResultsPage(query, userLocation, filters = {}) {
     const items = await getItems();
@@ -170,11 +165,10 @@ function getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDist
 }
 
 /**
- * 検索結果ページのイベントを設定
- * @param {string} query - 検索クエリ
+ * 検索結果ページに必要なイベントハンドラーを設定する
+ * 戻るボタンとフィルター適用ボタンのクリックイベントを設定し、フィルター値をURLパラメータに反映して再検索を実行する
  */
 export function attachSearchResultsPageEvents(query) {
-    // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -182,7 +176,6 @@ export function attachSearchResultsPageEvents(query) {
         });
     }
 
-    // フィルター適用ボタン
     const applyButton = document.getElementById('apply-filters');
     if (applyButton) {
         applyButton.addEventListener('click', () => {
@@ -191,7 +184,6 @@ export function attachSearchResultsPageEvents(query) {
             const maxDistance = document.getElementById('max-distance').value;
             const sortBy = document.getElementById('sort-by').value;
 
-            // URLパラメータで再検索
             const params = new URLSearchParams({
                 q: query,
                 minPrice,

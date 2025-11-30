@@ -1,13 +1,12 @@
 /**
- * お気に入り管理ユーティリティ
- * LocalStorageを使用して店舗のお気に入りを管理
+ * 店舗のお気に入り機能をLocalStorageで管理するユーティリティ
+ * お気に入りの追加、削除、確認、一覧取得などの機能を提供する
  */
 
 const FAVORITES_KEY = 'favoriteStores';
 
 /**
- * お気に入り店舗を取得
- * @returns {Array<number>} お気に入り店舗IDの配列
+ * LocalStorageからお気に入り店舗IDのリストを取得する
  */
 export function getFavorites() {
     try {
@@ -20,15 +19,13 @@ export function getFavorites() {
 }
 
 /**
- * 店舗をお気に入りに追加
- * @param {number} storeId - 店舗ID
- * @returns {boolean} 成功したかどうか
+ * 指定された店舗IDをお気に入りリストに追加する
+ * 既にお気に入りに追加済みの場合は何もせずに成功を返す
  */
 export function addFavorite(storeId) {
     try {
         const favorites = getFavorites();
 
-        // 既に追加済みの場合はスキップ
         if (favorites.includes(storeId)) {
             return true;
         }
@@ -44,9 +41,7 @@ export function addFavorite(storeId) {
 }
 
 /**
- * 店舗をお気に入りから削除
- * @param {number} storeId - 店舗ID
- * @returns {boolean} 成功したかどうか
+ * 指定された店舗IDをお気に入りリストから削除する
  */
 export function removeFavorite(storeId) {
     try {
@@ -63,9 +58,7 @@ export function removeFavorite(storeId) {
 }
 
 /**
- * 店舗がお気に入りかどうかチェック
- * @param {number} storeId - 店舗ID
- * @returns {boolean} お気に入りかどうか
+ * 指定された店舗IDがお気に入りに登録されているかどうかを確認する
  */
 export function isFavorite(storeId) {
     const favorites = getFavorites();
@@ -73,9 +66,8 @@ export function isFavorite(storeId) {
 }
 
 /**
- * お気に入りをトグル（追加/削除を切り替え）
- * @param {number} storeId - 店舗ID
- * @returns {boolean} トグル後の状態（true: お気に入り、false: 非お気に入り）
+ * お気に入りの追加/削除を切り替える
+ * 既にお気に入りの場合は削除し、そうでない場合は追加する
  */
 export function toggleFavorite(storeId) {
     if (isFavorite(storeId)) {
@@ -88,16 +80,14 @@ export function toggleFavorite(storeId) {
 }
 
 /**
- * お気に入り店舗の数を取得
- * @returns {number} お気に入り店舗数
+ * お気に入りに登録されている店舗の総数を取得する
  */
 export function getFavoritesCount() {
     return getFavorites().length;
 }
 
 /**
- * すべてのお気に入りをクリア
- * @returns {boolean} 成功したかどうか
+ * すべてのお気に入り登録を削除する
  */
 export function clearFavorites() {
     try {
@@ -110,9 +100,8 @@ export function clearFavorites() {
 }
 
 /**
- * お気に入り店舗のデータを取得
- * @param {Array} stores - 全店舗配列
- * @returns {Array} お気に入り店舗の配列
+ * お気に入り店舗IDのリストから、実際の店舗データオブジェクトの配列を生成する
+ * 全店舗配列からお気に入りIDに一致する店舗のみを抽出して返す
  */
 export function getFavoriteStores(stores) {
     const favoriteIds = getFavorites();

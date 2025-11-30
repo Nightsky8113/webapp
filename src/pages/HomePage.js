@@ -3,50 +3,43 @@ import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * ホームページを描画（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
- * @returns {Promise<string>} HTML文字列
+ * ホームページのコンテンツを生成する
+ * 検索方法選択UIと本日更新されたチラシの店舗一覧を表示する
+ * テンプレートファイルを使用してHTMLを生成し、読み込み失敗時はフォールバックHTMLを返す
  */
 export async function HomePage(userLocation) {
     const todayFlyers = await getTodayFlyers();
     
-    // 店舗情報を取得
     const { getStores } = await import('../services/dataService.js');
     const allStores = await getStores();
     
-    // 今日更新されたチラシの店舗IDを取得
     const storeIds = [...new Set(todayFlyers.map(f => f.store_id))];
     const todayStores = allStores.filter(s => storeIds.includes(s.id));
 
-    // 今日更新されたチラシの店舗カードHTML
     const todayStoresHTMLPromises = todayFlyers.map(async flyer => {
         const store = todayStores.find(s => s.id === flyer.store_id);
         if (!store) return '';
-        return await StoreCard(store, flyer, undefined); // 距離は表示しない
+        return await StoreCard(store, flyer, undefined);
     });
     const todayStoresHTML = (await Promise.all(todayStoresHTMLPromises)).join('');
 
-    // テンプレートデータを準備
     const templateData = {
         hasTodayFlyers: todayFlyers.length > 0,
         noTodayFlyers: todayFlyers.length === 0,
         todayStoresHTML: todayStoresHTML
     };
 
-    // テンプレートを読み込んでレンダリング
     try {
         return await loadAndRenderTemplate('/src/templates/pages/home-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        // フォールバック: インラインHTML（既存の方法）
         return getHomePageHTMLFallback(todayFlyers, todayStoresHTML);
     }
 }
 
 /**
- * フォールバック用HTML（テンプレート読み込み失敗時）
+ * テンプレート読み込み失敗時に使用するフォールバックHTMLを生成する
+ * テンプレート機能が利用できない場合でもページが表示できるようにする
  */
 function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
     return `
@@ -100,15 +93,14 @@ function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
 }
 
 /**
- * ホームページのイベントを設定
+ * ホームページに必要なイベントハンドラーを設定する
+ * 検索方法選択ボタンと店舗カードのクリックイベントを設定する
  */
 export function attachHomePageEvents() {
-    // 商品から探すボタン
     const searchByProduct = document.getElementById('search-by-product');
     if (searchByProduct) {
         searchByProduct.addEventListener('click', async () => {
             try {
-                // 位置情報を取得してからジャンルページへ遷移
                 const { requestUserLocation } = await import('../utils/location.js');
                 const userLocation = await requestUserLocation();
                 window.location.hash = `/genre?lat=${userLocation.lat}&lng=${userLocation.lng}`;
@@ -118,12 +110,10 @@ export function attachHomePageEvents() {
         });
     }
 
-    // 位置情報から探すボタン
     const searchByLocation = document.getElementById('search-by-location');
     if (searchByLocation) {
         searchByLocation.addEventListener('click', async () => {
             try {
-                // 位置情報を取得してから店舗一覧ページへ遷移
                 const { requestUserLocation } = await import('../utils/location.js');
                 const userLocation = await requestUserLocation();
                 window.location.hash = `/stores?lat=${userLocation.lat}&lng=${userLocation.lng}`;
@@ -133,7 +123,6 @@ export function attachHomePageEvents() {
         });
     }
 
-    // 店舗カードのクリックイベント（今日更新）
     const todayContainer = document.getElementById('today-flyers-container');
     if (todayContainer) {
         attachStoreCardEvents(todayContainer, (storeId) => {

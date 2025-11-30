@@ -1,11 +1,11 @@
 /**
- * データサービス（Supabase対応版）
- * PostgreSQLからデータを取得
+ * Supabaseデータベースへのデータアクセスを提供するサービス層
+ * 店舗、チラシ、商品、ジャンルなどのデータ取得とキャッシュ管理を行う
  */
 
 import { supabase, supabaseInitialized } from './supabase.js';
 
-// データキャッシュ（オプション: パフォーマンス向上）
+// 取得したデータを5分間メモリにキャッシュして、データベースへのリクエストを削減
 let cache = {
     stores: null,
     flyers: null,
@@ -14,10 +14,11 @@ let cache = {
     cacheTime: {}
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5分
+const CACHE_DURATION = 5 * 60 * 1000;
 
 /**
- * キャッシュが有効かチェック
+ * 指定されたキーのキャッシュが有効期限内かどうかを判定する
+ * キャッシュが存在しないか、有効期限を過ぎている場合はfalseを返す
  */
 function isCacheValid(key) {
     if (!cache[key] || !cache.cacheTime[key]) return false;
@@ -25,7 +26,9 @@ function isCacheValid(key) {
 }
 
 /**
- * 全店舗を取得
+ * データベースから全店舗のリストを取得する
+ * キャッシュが有効な場合はデータベースに問い合わせずにキャッシュを返す
+ * @param {boolean} forceRefresh - trueの場合、キャッシュを無視してデータベースから最新データを取得
  */
 export async function getStores(forceRefresh = false) {
     if (!forceRefresh && isCacheValid('stores')) {
@@ -48,7 +51,8 @@ export async function getStores(forceRefresh = false) {
 }
 
 /**
- * 店舗IDで店舗を取得
+ * 指定されたIDの店舗情報を1件取得する
+ * 店舗詳細ページなどで使用される
  */
 export async function getStoreById(storeId) {
     const { data, error } = await supabase
@@ -66,7 +70,8 @@ export async function getStoreById(storeId) {
 }
 
 /**
- * 全チラシを取得
+ * データベースから全チラシのリストを取得する（更新日の新しい順）
+ * キャッシュが有効な場合はデータベースに問い合わせずにキャッシュを返す
  */
 export async function getFlyers(forceRefresh = false) {
     if (!forceRefresh && isCacheValid('flyers')) {
@@ -89,7 +94,8 @@ export async function getFlyers(forceRefresh = false) {
 }
 
 /**
- * 店舗の最新チラシを取得
+ * 指定された店舗の最新チラシを取得する
+ * is_latestフラグがtrueのチラシを優先的に取得し、見つからない場合は最新の更新日時のチラシを返す
  */
 export async function getLatestFlyerByStoreId(storeId) {
     const { data, error } = await supabase
@@ -102,7 +108,7 @@ export async function getLatestFlyerByStoreId(storeId) {
         .single();
 
     if (error) {
-        // データが見つからない場合は最新のチラシを返す
+        // is_latestフラグが設定されていない場合のフォールバック: 最新更新日時のチラシを取得
         const { data: latestData } = await supabase
             .from('flyers')
             .select('*')
@@ -118,7 +124,8 @@ export async function getLatestFlyerByStoreId(storeId) {
 }
 
 /**
- * 全商品を取得
+ * データベースから全商品のリストを取得する
+ * キャッシュが有効な場合はデータベースに問い合わせずにキャッシュを返す
  */
 export async function getItems(forceRefresh = false) {
     if (!forceRefresh && isCacheValid('items')) {
@@ -141,14 +148,15 @@ export async function getItems(forceRefresh = false) {
 }
 
 /**
- * チラシIDで商品を取得
+ * 指定されたチラシに含まれる商品リストを取得する（価格の高い順）
+ * 店舗詳細ページなどでチラシに表示されている商品を表示する際に使用
  */
 export async function getItemsByFlyerId(flyerId) {
     const { data, error } = await supabase
         .from('items')
         .select('*')
         .eq('flyer_id', parseInt(flyerId))
-        .order('price', { ascending: false }); // 価格の高い順
+        .order('price', { ascending: false });
 
     if (error) {
         console.error('商品取得エラー:', error);
@@ -159,7 +167,8 @@ export async function getItemsByFlyerId(flyerId) {
 }
 
 /**
- * ジャンルIDで商品を取得
+ * 指定されたジャンルに属する商品リストを取得する
+ * ジャンル別店舗検索で使用
  */
 export async function getItemsByGenreId(genreId) {
     const { data, error } = await supabase
@@ -176,7 +185,8 @@ export async function getItemsByGenreId(genreId) {
 }
 
 /**
- * 全ジャンルを取得
+ * データベースから全ジャンルのリストを取得する
+ * キャッシュが有効な場合はデータベースに問い合わせずにキャッシュを返す
  */
 export async function getGenres(forceRefresh = false) {
     if (!forceRefresh && isCacheValid('genres')) {
@@ -199,7 +209,8 @@ export async function getGenres(forceRefresh = false) {
 }
 
 /**
- * ジャンルIDでジャンルを取得
+ * 指定されたIDのジャンル情報を1件取得する
+ * ジャンル名やアイコンを表示する際に使用
  */
 export async function getGenreById(genreId) {
     const { data, error } = await supabase
@@ -217,7 +228,8 @@ export async function getGenreById(genreId) {
 }
 
 /**
- * 今日更新されたチラシを取得
+ * 本日更新されたチラシのリストを取得する
+ * ホームページの「今日更新されたチラシ」セクションで使用
  */
 export async function getTodayFlyers() {
     const today = new Date().toISOString().split('T')[0];
@@ -238,16 +250,16 @@ export async function getTodayFlyers() {
 }
 
 /**
- * ジャンルを扱う店舗を取得
+ * 指定されたジャンルの商品を取り扱っている店舗リストを取得する
+ * ジャンル→商品→チラシ→店舗という関連をたどって店舗を特定する
+ * ジャンル別店舗一覧ページで使用
  */
 export async function getStoresByGenreId(genreId) {
-    // 1. 該当ジャンルの商品を取得
     const items = await getItemsByGenreId(genreId);
     const flyerIds = [...new Set(items.map(item => item.flyer_id))];
 
     if (flyerIds.length === 0) return [];
 
-    // 2. チラシから店舗IDを取得
     const { data: flyers, error: flyersError } = await supabase
         .from('flyers')
         .select('store_id')
@@ -260,7 +272,6 @@ export async function getStoresByGenreId(genreId) {
 
     const storeIds = [...new Set(flyers.map(f => f.store_id))];
 
-    // 3. 店舗を取得
     const { data: stores, error: storesError } = await supabase
         .from('stores')
         .select('*')
@@ -275,7 +286,8 @@ export async function getStoresByGenreId(genreId) {
 }
 
 /**
- * キャッシュをクリア
+ * すべてのキャッシュデータをクリアする
+ * データ更新後に最新データを取得できるよう、キャッシュを無効化する際に使用
  */
 export function clearCache() {
     cache = {
@@ -285,4 +297,144 @@ export function clearCache() {
         genres: null,
         cacheTime: {}
     };
+}
+
+/**
+ * 新しいチラシレコードをデータベースに作成する
+ * 新規チラシがis_latest=trueの場合、同じ店舗の既存チラシのis_latestをfalseに更新して一貫性を保つ
+ * @param {Object} flyerData - チラシデータ
+ * @param {number} flyerData.store_id - 店舗ID
+ * @param {string} flyerData.image_url - 画像URL
+ * @param {string} flyerData.thumbnail_url - サムネイルURL（省略可能、image_urlと同じになる）
+ * @param {boolean} flyerData.is_latest - 最新フラグ（デフォルト: true）
+ * @param {boolean} flyerData.ocr_done - OCR処理済みフラグ（デフォルト: false）
+ * @returns {Promise<Object>} {success: boolean, data?: Object, error?: string}
+ */
+export async function createFlyer(flyerData) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。環境変数を確認してください。'
+        };
+    }
+
+    const {
+        store_id,
+        image_url,
+        thumbnail_url,
+        is_latest = true,
+        ocr_done = false
+    } = flyerData;
+
+    if (!store_id || !image_url) {
+        return {
+            success: false,
+            error: 'store_idとimage_urlは必須です。'
+        };
+    }
+
+    try {
+        // 新規チラシを最新とする場合、同じ店舗の既存チラシのis_latestフラグをfalseに更新
+        // これにより、1店舗あたり最新のチラシは1件のみとなる
+        if (is_latest) {
+            const { error: updateError } = await supabase
+                .from('flyers')
+                .update({ is_latest: false })
+                .eq('store_id', parseInt(store_id))
+                .eq('is_latest', true);
+
+            if (updateError) {
+                console.error('既存チラシの更新エラー:', updateError);
+            }
+        }
+
+        const insertData = {
+            store_id: parseInt(store_id),
+            image_url: image_url,
+            thumbnail_url: thumbnail_url || image_url,
+            is_latest: is_latest,
+            ocr_done: ocr_done,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('flyers')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('チラシ作成エラー:', error);
+            return {
+                success: false,
+                error: `チラシの作成に失敗しました: ${error.message}`
+            };
+        }
+
+        clearCache();
+
+        console.log('チラシ作成成功:', data);
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('チラシ作成エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
+}
+
+/**
+ * 既存のチラシレコードを更新する
+ * updated_atは自動的に現在の日時に更新される
+ * @param {number} flyerId - 更新するチラシのID
+ * @param {Object} updateData - 更新するデータ
+ * @returns {Promise<Object>} {success: boolean, data?: Object, error?: string}
+ */
+export async function updateFlyer(flyerId, updateData) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。環境変数を確認してください。'
+        };
+    }
+
+    try {
+        const dataToUpdate = {
+            ...updateData,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('flyers')
+            .update(dataToUpdate)
+            .eq('id', parseInt(flyerId))
+            .select()
+            .single();
+
+        if (error) {
+            console.error('チラシ更新エラー:', error);
+            return {
+                success: false,
+                error: `チラシの更新に失敗しました: ${error.message}`
+            };
+        }
+
+        clearCache();
+
+        console.log('チラシ更新成功:', data);
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('チラシ更新エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
 }

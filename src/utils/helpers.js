@@ -1,7 +1,11 @@
 /**
- * XSS対策: HTMLエスケープ
- * @param {string} str - エスケープする文字列
- * @returns {string} エスケープ済み文字列
+ * 汎用的なヘルパー関数を提供するユーティリティ
+ * HTMLエスケープ、価格・日付フォーマット、LocalStorage操作などの共通機能を集約
+ */
+
+/**
+ * 文字列をHTMLエスケープしてXSS攻撃を防ぐ
+ * ユーザー入力や外部データをHTMLに埋め込む前に必ず使用する
  */
 export function escapeHtml(str) {
     if (!str) return '';
@@ -12,9 +16,7 @@ export function escapeHtml(str) {
 }
 
 /**
- * 数値を通貨形式にフォーマット
- * @param {number} price - 価格
- * @returns {string} フォーマット済み価格（例: "¥1,980"）
+ * 数値を日本の通貨形式（¥記号 + カンマ区切り）にフォーマットする
  */
 export function formatPrice(price) {
     if (typeof price !== 'number') return '¥0';
@@ -22,9 +24,7 @@ export function formatPrice(price) {
 }
 
 /**
- * 日付を日本語形式にフォーマット
- * @param {string} dateStr - 日付文字列（ISO形式）
- * @returns {string} フォーマット済み日付（例: "2025年11月29日"）
+ * 日付文字列を日本語形式（年月日）にフォーマットする
  */
 export function formatDate(dateStr) {
     const date = new Date(dateStr);
@@ -36,8 +36,8 @@ export function formatDate(dateStr) {
 }
 
 /**
- * 今日の日付を取得（YYYY-MM-DD形式）
- * @returns {string} 今日の日付
+ * 今日の日付をYYYY-MM-DD形式の文字列で取得する
+ * データベースの日付比較などで使用する
  */
 export function getTodayString() {
     const today = new Date();
@@ -45,9 +45,8 @@ export function getTodayString() {
 }
 
 /**
- * 配列をシャッフル
- * @param {Array} array - シャッフルする配列
- * @returns {Array} シャッフル済み配列
+ * 配列の要素をランダムにシャッフルする
+ * Fisher-Yatesアルゴリズムを使用して均等なシャッフルを実現する
  */
 export function shuffle(array) {
     const newArray = [...array];
@@ -59,10 +58,9 @@ export function shuffle(array) {
 }
 
 /**
- * デバウンス関数
- * @param {Function} func - 実行する関数
- * @param {number} delay - 遅延時間（ms）
- * @returns {Function} デバウンス済み関数
+ * 関数の実行を指定時間だけ遅延させるデバウンス関数を返す
+ * 連続して呼び出される関数の実行回数を削減し、パフォーマンスを向上させる
+ * 入力フィールドの検索など、頻繁に実行される処理に使用する
  */
 export function debounce(func, delay = 300) {
     let timeoutId;
@@ -73,9 +71,8 @@ export function debounce(func, delay = 300) {
 }
 
 /**
- * ローカルストレージにデータを保存
- * @param {string} key - キー
- * @param {*} value - 保存する値
+ * LocalStorageにデータをJSON形式で保存する
+ * 保存に失敗した場合はエラーをログに記録する
  */
 export function saveToLocalStorage(key, value) {
     try {
@@ -86,10 +83,8 @@ export function saveToLocalStorage(key, value) {
 }
 
 /**
- * ローカルストレージからデータを取得
- * @param {string} key - キー
- * @param {*} defaultValue - デフォルト値
- * @returns {*} 取得した値
+ * LocalStorageからデータを取得し、JSONとしてパースして返す
+ * データが存在しない場合はデフォルト値を返す
  */
 export function getFromLocalStorage(key, defaultValue = null) {
     try {
@@ -102,8 +97,8 @@ export function getFromLocalStorage(key, defaultValue = null) {
 }
 
 /**
- * URLのハッシュからパスとパラメータを取得
- * @returns {Object} {path, params}
+ * 現在のURLハッシュからルートパスとクエリパラメータを解析して取得する
+ * ルーティング処理で使用される
  */
 export function parseHash() {
     const hash = window.location.hash.slice(1) || '/home';

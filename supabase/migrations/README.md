@@ -15,12 +15,21 @@
 - 商品データ更新時に自動で店舗データを更新するトリガー
 - 既存データに対する初期集計処理
 
+### 003_storage_setup.sql
+Supabase Storageポリシー設定（チラシ画像保存用）
+- Storageバケット`flyer-images`のポリシー設定
+- 公開読み取りポリシー
+- アップロード・更新・削除ポリシー
+
+**注意**: このマイグレーションを実行する前に、Supabase Dashboardで`flyer-images`バケットを作成する必要があります。
+
 ## 実行順序
 
 マイグレーションファイルは番号順に実行してください：
 
 1. `001_initial.sql` - まずこれを実行
 2. `002_update_store_summary.sql` - 次にこれを実行
+3. `003_storage_setup.sql` - 最後にこれを実行（Storageバケット作成後）
 
 ## Supabaseでの実行方法
 
@@ -31,6 +40,10 @@
 3. SQL Editorを開く
 4. `001_initial.sql`の内容をコピーして実行
 5. `002_update_store_summary.sql`の内容をコピーして実行
+6. **Storageバケットを作成**（Storage設定が必要な場合）
+   - Storage → New bucket → `flyer-images`を作成
+   - 詳細は`STORAGE_SETUP_GUIDE.md`を参照
+7. `003_storage_setup.sql`の内容をコピーして実行（Storageバケット作成後）
 
 ### 方法2: Supabase CLI
 

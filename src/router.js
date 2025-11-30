@@ -4,9 +4,11 @@ import { GenrePage, attachGenrePageEvents } from './pages/GenrePage.js';
 import { GenreStoresPage, attachGenreStoresPageEvents } from './pages/GenreStoresPage.js';
 import { StoreDetailPage, attachStoreDetailPageEvents } from './pages/StoreDetailPage.js';
 import { SearchResultsPage, attachSearchResultsPageEvents } from './pages/SearchResultsPage.js';
+import { AdminUploadPage, attachAdminUploadPageEvents } from './pages/AdminUploadPage.js';
 
 /**
- * ルートの定義
+ * アプリケーションのルート定義
+ * 各ルートは対応するページコンポーネントとイベントハンドラーを指定する
  */
 const routes = {
     '/home': {
@@ -32,14 +34,19 @@ const routes = {
     '/search': {
         render: SearchResultsPage,
         attachEvents: attachSearchResultsPageEvents
+    },
+    '/admin/upload': {
+        render: AdminUploadPage,
+        attachEvents: attachAdminUploadPageEvents
     }
 };
 
 /**
- * パスとパラメータをマッチング
- * @param {string} pattern - ルートパターン
- * @param {string} path - 実際のパス
- * @returns {Object|null} パラメータオブジェクトまたはnull
+ * ルートパターンと実際のパスを比較し、パラメータを抽出する
+ * 例: '/store/:storeId' と '/store/123' をマッチさせ、{storeId: '123'} を返す
+ * @param {string} pattern - ルートパターン（例: '/store/:storeId'）
+ * @param {string} path - 実際のパス（例: '/store/123'）
+ * @returns {Object|null} 抽出されたパラメータオブジェクト、マッチしない場合はnull
  */
 function matchRoute(pattern, path) {
     const patternParts = pattern.split('/');
@@ -53,11 +60,9 @@ function matchRoute(pattern, path) {
 
     for (let i = 0; i < patternParts.length; i++) {
         if (patternParts[i].startsWith(':')) {
-            // パラメータ部分
             const paramName = patternParts[i].slice(1);
             params[paramName] = pathParts[i];
         } else if (patternParts[i] !== pathParts[i]) {
-            // パスが一致しない
             return null;
         }
     }
@@ -66,14 +71,14 @@ function matchRoute(pattern, path) {
 }
 
 /**
- * 現在のルートを取得
- * @returns {Object} {route, params, queryParams}
+ * 現在のURLからルート情報を取得し、マッチするルート定義とパラメータを返す
+ * URLのハッシュとクエリパラメータを解析し、定義されたルートと照合する
+ * @returns {Object} マッチしたルート定義、パラメータ、クエリパラメータを含むオブジェクト
  */
 function getCurrentRoute() {
     const hash = window.location.hash.slice(1) || '/home';
     const [path] = hash.split('?');
 
-    // クエリパラメータを解析
     const queryParams = {};
     const queryString = hash.split('?')[1];
     if (queryString) {
@@ -83,7 +88,6 @@ function getCurrentRoute() {
         });
     }
 
-    // ルートをマッチング
     for (const [pattern, route] of Object.entries(routes)) {
         const params = matchRoute(pattern, path);
         if (params !== null) {
@@ -91,7 +95,7 @@ function getCurrentRoute() {
         }
     }
 
-    // マッチしない場合はホームにリダイレクト
+    // マッチするルートがない場合、ホームページにフォールバック
     return {
         route: routes['/home'],
         params: {},
@@ -100,14 +104,16 @@ function getCurrentRoute() {
 }
 
 /**
- * ページを描画
+ * 現在のURLに基づいて適切なページコンポーネントを描画する
+ * URLパラメータやクエリ文字列を解析し、ページに必要なデータを渡す
+ * ページ描画後、そのページ固有のイベントハンドラーを設定する
  * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  */
 export async function renderPage(userLocation) {
     const appContainer = document.getElementById('app');
     if (!appContainer) return;
 
-    // ローディング表示
+    // ページ遷移中の読み込み状態を表示してユーザーに視覚的フィードバックを提供
     appContainer.innerHTML = `
     <div class="flex items-center justify-center min-h-[60vh]">
       <div class="text-center">
@@ -117,13 +123,13 @@ export async function renderPage(userLocation) {
     </div>
   `;
 
-    // ページトップへスクロール
+    // ページ遷移時にトップへスクロールして新しいコンテンツを見やすくする
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
         const { route, params, queryParams } = getCurrentRoute();
 
-        // URLパラメータから位置情報を取得（あれば）
+        // URLのクエリパラメータから位置情報を取得（位置情報検索時にURLに含まれる）
         if (queryParams.lat && queryParams.lng) {
             userLocation = {
                 lat: parseFloat(queryParams.lat),
@@ -131,10 +137,9 @@ export async function renderPage(userLocation) {
             };
         }
 
-        // ページを描画
         let html;
 
-        // 検索ページの場合は特別処理
+        // 検索ページは検索クエリとフィルターオプションを受け取る
         if (window.location.hash.includes('/search')) {
             const query = queryParams.q || '';
             const filters = {
@@ -145,30 +150,28 @@ export async function renderPage(userLocation) {
             };
             html = await route.render(query, userLocation, filters);
         } else if (Object.keys(params).length > 0) {
-            // パラメータがある場合（例: /store/1）
+            // パラメータ付きルート（例: /store/1, /genre/2/stores）の場合は数値に変換して渡す
             const paramValues = Object.values(params).map(val => {
-                // 数値に変換できる場合は数値に変換
                 const numVal = Number(val);
                 return !isNaN(numVal) && numVal.toString() === val ? numVal : val;
             });
             html = await route.render(...paramValues, userLocation);
         } else {
-            // パラメータがない場合
+            // パラメータなしルート（例: /home, /genre）
             html = await route.render(userLocation);
         }
 
         appContainer.innerHTML = html;
 
-        // イベントをアタッチ
+        // ページ固有のイベントハンドラーを設定（クリック、フォーム送信など）
         if (route.attachEvents) {
-            // 検索ページの場合はクエリを渡す
             if (window.location.hash.includes('/search')) {
                 const result = route.attachEvents(queryParams.q || '');
                 if (result instanceof Promise) {
                     await result;
                 }
             } else {
-                // 非同期のイベントハンドラーに対応
+                // 非同期のイベントハンドラー設定に対応（地図初期化など）
                 const result = route.attachEvents();
                 if (result instanceof Promise) {
                     await result;
@@ -177,6 +180,7 @@ export async function renderPage(userLocation) {
         }
     } catch (error) {
         console.error('ページ描画エラー:', error);
+        // エラー発生時にユーザーに分かりやすいエラーメッセージと復帰方法を表示
         appContainer.innerHTML = `
       <div class="text-center py-12">
         <div class="text-6xl mb-4">⚠️</div>
@@ -193,15 +197,16 @@ export async function renderPage(userLocation) {
 }
 
 /**
- * ルーターを初期化
+ * クライアントサイドルーティングを初期化し、URLのハッシュ変更を監視する
+ * ハッシュが変更されるたびに適切なページを描画する
  * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
  */
 export function initRouter(userLocation) {
-    // ハッシュ変更時にページを再描画
+    // URLハッシュの変更を監視してページ遷移を実現
     window.addEventListener('hashchange', () => {
         renderPage(userLocation);
     });
 
-    // 初回描画
+    // アプリ起動時の初回ページ描画
     renderPage(userLocation);
 }

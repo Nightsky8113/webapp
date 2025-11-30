@@ -4,35 +4,29 @@ import { debounce } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
- * ジャンル選択ページを描画（分離版）
- * HTMLは外部テンプレート、CSSはカスタムクラスを使用
- * 
- * @param {Object|null} userLocation - ユーザーの位置情報 {lat, lng} または null
- * @returns {Promise<string>} HTML文字列
+ * ジャンル選択ページのコンテンツを生成する
+ * 商品検索機能とジャンル一覧を表示し、ユーザーが商品検索またはジャンル選択を行えるようにする
  */
 export async function GenrePage(userLocation) {
     const genres = await getGenres();
     const genresHTMLPromises = genres.map(async genre => await GenreCard(genre));
     const genresHTML = (await Promise.all(genresHTMLPromises)).join('');
 
-    // テンプレートデータを準備
     const templateData = {
         genresHTML: genresHTML,
         noGenres: genres.length === 0
     };
 
-    // テンプレートを読み込んでレンダリング
     try {
         return await loadAndRenderTemplate('/src/templates/pages/genre-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        // フォールバック: インラインHTML（既存の方法）
         return getGenrePageHTMLFallback(genresHTML, genres.length);
     }
 }
 
 /**
- * フォールバック用HTML（テンプレート読み込み失敗時）
+ * テンプレート読み込み失敗時に使用するフォールバックHTMLを生成する
  */
 function getGenrePageHTMLFallback(genresHTML, genresCount) {
     return `
@@ -68,10 +62,11 @@ function getGenrePageHTMLFallback(genresHTML, genresCount) {
 }
 
 /**
- * ジャンル選択ページのイベントを設定
+ * ジャンル選択ページに必要なイベントハンドラーを設定する
+ * 戻るボタン、商品検索入力、検索ボタン、ジャンルカードのクリックイベントを設定する
+ * 商品検索は入力中の連続リクエストを防ぐためデバウンス処理を適用する
  */
 export function attachGenrePageEvents() {
-    // 戻るボタン
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -79,14 +74,12 @@ export function attachGenrePageEvents() {
         });
     }
 
-    // 検索実行関数
     const executeSearch = async (query) => {
         if (!query || query.trim().length === 0) {
             return;
         }
 
         try {
-            // URLから位置情報を取得（なければ取得）
             const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
@@ -104,7 +97,6 @@ export function attachGenrePageEvents() {
         }
     };
 
-    // 商品名検索のデバウンス処理
     const searchInput = document.getElementById('product-search-input');
     if (searchInput) {
         const handleSearch = debounce(async (query) => {
@@ -115,7 +107,6 @@ export function attachGenrePageEvents() {
             handleSearch(e.target.value);
         });
 
-        // Enterキーでも検索
         searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 await executeSearch(searchInput.value);
@@ -123,7 +114,6 @@ export function attachGenrePageEvents() {
         });
     }
 
-    // 検索ボタン
     const searchButton = document.getElementById('search-button');
     if (searchButton && searchInput) {
         searchButton.addEventListener('click', async () => {
@@ -131,11 +121,9 @@ export function attachGenrePageEvents() {
         });
     }
 
-    // ジャンルカードのクリックイベント
     const genresContainer = document.getElementById('genres-container');
     if (genresContainer) {
         attachGenreCardEvents(genresContainer, async (genreId) => {
-            // URLから位置情報を取得（なければ取得）
             const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');

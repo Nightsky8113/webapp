@@ -26,12 +26,25 @@
       ${endif}
       
       <!-- 最寄り駅 -->
+      ${if:hasStationInfo}
       <div class="flex items-center gap-2">
         <span class="text-xl">🚶</span>
         <span>${station}から徒歩${walkMinutes}分</span>
       </div>
+      ${endif}
+      
+      <!-- 住所（APIから取得した店舗の場合） -->
+      ${if:isFromAPI}
+      ${if:address}
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📍</span>
+        <span>${address}</span>
+      </div>
+      ${endif}
+      ${endif}
       
       <!-- おすすめ商品 -->
+      ${if:hasItemInfo}
       <div class="item-highlight">
         <div class="flex items-start gap-2">
           <span class="text-xl">🏷️</span>
@@ -41,6 +54,15 @@
           </div>
         </div>
       </div>
+      ${endif}
+      
+      ${if:isFromAPI}
+      ${if:!hasItemInfo}
+      <div class="text-gray-500 text-sm">
+        <p>※ この店舗はAPIから自動検出された店舗です。商品情報は表示されません。</p>
+      </div>
+      ${endif}
+      ${endif}
     </div>
   </div>
 </div>
