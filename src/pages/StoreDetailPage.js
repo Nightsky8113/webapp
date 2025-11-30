@@ -4,6 +4,7 @@ import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
 import { isFavorite, toggleFavorite } from '../utils/favorites.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { initLightboxWithRetry } from '../utils/lightbox.js';
+import { getWalkingTime } from '../services/walkingTimeService.js';
 
 /**
  * 指定された店舗の詳細情報ページのコンテンツを生成する
@@ -73,10 +74,13 @@ export async function StoreDetailPage(storeId, userLocation) {
 
     const storeName = escapeHtml(store.name);
     const address = escapeHtml(store.address);
-    const station = escapeHtml(store.nearest_station);
+    const station = escapeHtml(store.nearest_station || '');
     const imageUrl = flyer?.image_url || 'https://via.placeholder.com/800x600?text=No+Image';
     const updatedAt = flyer ? formatDate(flyer.updated_at) : '-';
     const isFav = isFavorite(storeId);
+    
+    // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
+    const walkMinutes = await getWalkingTime(storeId);
 
     // テンプレートデータを準備
     const favoriteClass = isFav ? 'active' : 'inactive';
@@ -91,7 +95,8 @@ export async function StoreDetailPage(storeId, userLocation) {
         address: address,
         distance: distance > 0 ? distance.toFixed(1) : '-',
         station: station,
-        walkMinutes: store.summary_walk_minutes || '-',
+        walkMinutes: walkMinutes || null,
+        hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
         imageUrl: imageUrl,
         updatedAt: updatedAt,
         isFavorite: isFav,
@@ -110,7 +115,7 @@ export async function StoreDetailPage(storeId, userLocation) {
         return await loadAndRenderTemplate('/src/templates/pages/store-detail-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        return getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, station, store.summary_walk_minutes, imageUrl, updatedAt, isFav, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);
+        return getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, station, walkMinutes, imageUrl, updatedAt, isFav, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);
     }
 }
 
@@ -152,10 +157,12 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
               <span class="text-2xl">📏</span>
               <div><div class="font-medium text-gray-700">現在地からの距離</div><div>${distance.toFixed(1)} km</div></div>
             </div>
+            ${station ? `
             <div class="flex items-start gap-3">
               <span class="text-2xl">🚶</span>
-              <div><div class="font-medium text-gray-700">最寄り駅</div><div>${station}から徒歩${walkMinutes}分</div></div>
+              <div><div class="font-medium text-gray-700">最寄り駅</div><div>${station}${walkMinutes ? `から徒歩${walkMinutes}分` : ''}</div></div>
             </div>
+            ` : ''}
           </div>
           ${itemsHTML ? `
             <div class="border-t pt-6">

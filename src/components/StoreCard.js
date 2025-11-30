@@ -1,5 +1,6 @@
 import { escapeHtml, formatPrice } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { getWalkingTime } from '../services/walkingTimeService.js';
 
 /**
  * 店舗情報を表示するカードコンポーネントを生成する
@@ -15,9 +16,11 @@ export async function StoreCard(store, flyer, distance) {
     const thumbnailUrl = flyer?.thumbnail_url || 'https://via.placeholder.com/400x300?text=No+Image';
     const imageUrl = flyer?.image_url || thumbnailUrl;
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
-    const walkMinutes = store.summary_walk_minutes || null;
     const station = escapeHtml(store.nearest_station || '');
     const isFromAPI = store.is_from_api || false;
+    
+    // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
+    const walkMinutes = await getWalkingTime(store.id);
 
     const templateData = {
         id: store.id,
@@ -27,11 +30,11 @@ export async function StoreCard(store, flyer, distance) {
         showDistance: distance !== undefined,
         distanceText: distanceText,
         station: station,
-        walkMinutes: walkMinutes,
+        walkMinutes: walkMinutes || null,
+        hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
         itemName: itemName,
         itemPrice: itemPrice,
         hasItemInfo: itemName && itemPrice,
-        hasStationInfo: station && walkMinutes,
         isFromAPI: isFromAPI,
         address: store.address || ''
     };
@@ -70,10 +73,12 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
             <span class="font-medium">現在地から ${distanceText}</span>
           </div>
           ` : ''}
+          ${station ? `
           <div class="flex items-center gap-2">
             <span class="text-xl">🚶</span>
-            <span>${station}から徒歩${walkMinutes}分</span>
+            <span>${station}${walkMinutes ? `から徒歩${walkMinutes}分` : ''}</span>
           </div>
+          ` : ''}
           <div class="item-highlight">
             <div class="flex items-start gap-2">
               <span class="text-xl">🏷️</span>
