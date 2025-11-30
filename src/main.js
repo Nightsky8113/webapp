@@ -1,3 +1,6 @@
+// 診断用: main.jsが読み込まれたことを確認
+console.log('✅ main.jsが読み込まれました');
+
 import { initRouter } from './router.js';
 import { getDefaultLocation } from './utils/location.js';
 import { initImageModal } from './utils/imageModal.js';
@@ -24,13 +27,20 @@ async function initApp() {
                     <p class="text-gray-500 text-lg mb-4">アプリの初期化に時間がかかっています</p>
                     <p class="text-gray-400 text-sm mb-4">環境変数が設定されているか、コンソールでエラーを確認してください</p>
                     <button 
-                        onclick="window.location.reload()"
+                        id="reload-button-timeout"
                         class="btn-primary"
                     >
                         再読み込み
                     </button>
                 </div>
             `;
+            // イベントリスナーを追加
+            const reloadButton = document.getElementById('reload-button-timeout');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
+            }
         }
     }, 10000); // 10秒でタイムアウト
 
@@ -81,13 +91,20 @@ async function initApp() {
                     <p class="text-gray-500 text-lg mb-4">アプリの起動に失敗しました</p>
                     <p class="text-gray-400 text-sm mb-4">${error.message || '不明なエラーが発生しました'}</p>
                     <button 
-                        onclick="window.location.reload()"
+                        id="reload-button-error"
                         class="btn-primary"
                     >
                         再読み込み
                     </button>
                 </div>
             `;
+            // イベントリスナーを追加
+            const reloadButton = document.getElementById('reload-button-error');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
+            }
         }
     }
 }
@@ -120,13 +137,20 @@ window.addEventListener('error', (event) => {
                     <p class="text-gray-500 text-lg mb-4">エラーが発生しました</p>
                     <p class="text-gray-400 text-sm mb-4">コンソールで詳細を確認してください</p>
                     <button 
-                        onclick="window.location.reload()"
+                        id="reload-button-global-error"
                         class="btn-primary"
                     >
                         再読み込み
                     </button>
                 </div>
             `;
+            // イベントリスナーを追加
+            const reloadButton = document.getElementById('reload-button-global-error');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
+            }
         }
     }
 });
@@ -149,13 +173,20 @@ window.addEventListener('unhandledrejection', (event) => {
                     <p class="text-gray-500 text-lg mb-4">非同期処理でエラーが発生しました</p>
                     <p class="text-gray-400 text-sm mb-4">${event.reason?.message || '不明なエラー'}</p>
                     <button 
-                        onclick="window.location.reload()"
+                        id="reload-button-promise-error"
                         class="btn-primary"
                     >
                         再読み込み
                     </button>
                 </div>
             `;
+            // イベントリスナーを追加
+            const reloadButton = document.getElementById('reload-button-promise-error');
+            if (reloadButton) {
+                reloadButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
+            }
         }
     }
 });

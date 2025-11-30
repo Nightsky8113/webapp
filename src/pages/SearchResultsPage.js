@@ -85,7 +85,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
                     <div class="flex items-center gap-2"><span>📍</span><span>${itemData.distance} km</span></div>
                   </div>
                 </div>
-                <button class="btn-store-view" onclick="window.location.hash = '/store/${itemData.storeId}'">店舗を見る →</button>
+                <button class="btn-store-view" data-store-id="${itemData.storeId}">店舗を見る →</button>
               </div>
             </div>
           `;
@@ -195,4 +195,15 @@ export function attachSearchResultsPageEvents(query) {
             window.location.hash = `/search?${params.toString()}`;
         });
     }
+
+    // 検索結果内の「店舗を見る」ボタンにイベントリスナーを追加
+    const storeViewButtons = document.querySelectorAll('.btn-store-view[data-store-id]');
+    storeViewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const storeId = button.getAttribute('data-store-id');
+            if (storeId) {
+                window.location.hash = `/store/${storeId}`;
+            }
+        });
+    });
 }

@@ -195,13 +195,20 @@ export async function renderPage(userLocation) {
                 <p class="text-gray-500 text-lg mb-4">ページの読み込みに失敗しました</p>
                 <p class="text-gray-400 text-sm mb-4">${error.message || '不明なエラー'}</p>
                 <button 
-                    onclick="window.location.hash = '/home'"
+                    id="back-to-home-button"
                     class="btn-primary"
                 >
                     ホームに戻る
                 </button>
             </div>
         `;
+        // イベントリスナーを追加
+        const backButton = document.getElementById('back-to-home-button');
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                window.location.hash = '/home';
+            });
+        }
     }
 }
 

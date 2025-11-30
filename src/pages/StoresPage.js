@@ -208,7 +208,7 @@ export async function attachStoresPageEvents() {
                     // APIから取得した店舗は詳細ページがないので、ボタンを表示しない
                     const detailButton = store.is_from_api 
                         ? '' 
-                        : `<button onclick="window.location.hash = '/store/${store.id}'" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        : `<button data-store-id="${store.id}" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
                             詳細を見る
                         </button>`;
                     
