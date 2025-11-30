@@ -2,6 +2,7 @@ import { getStores } from '../services/dataService.js';
 import { uploadAndSaveFlyer } from '../services/storageService.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { processFlyerOCR } from '../services/ocrService.js';
 
 /**
  * 管理者向けチラシ画像アップロードページのコンテンツを生成する
@@ -155,17 +156,54 @@ export async function attachAdminUploadPageEvents() {
                 if (result.success) {
                     showStatus(uploadStatus, `✅ アップロード成功！チラシID: ${result.flyer.id}`, 'success');
                     
+                    // OCR処理を実行（オプション）
+                    const enableOCR = document.getElementById('enable-ocr');
+                    if (enableOCR && enableOCR.checked) {
+                        showStatus(uploadStatus, '🔄 OCR処理を実行中...（1-2分かかる場合があります）', 'loading');
+                        
+                        // OCR処理を非同期で実行
+                        processFlyerOCR(result.imageUrl, result.flyer.id, storeId)
+                            .then(ocrResult => {
+                                if (ocrResult.success) {
+                                    const itemsCount = ocrResult.items?.length || 0;
+                                    showStatus(uploadStatus, `✅ OCR処理完了！商品情報を${itemsCount}件抽出しました。`, 'success');
+                                    
+                                    setTimeout(() => {
+                                        if (uploadStatus) {
+                                            uploadStatus.classList.add('hidden');
+                                        }
+                                    }, 5000);
+                                } else {
+                                    showStatus(uploadStatus, `⚠️ OCR処理に失敗しました: ${ocrResult.error}`, 'error');
+                                    setTimeout(() => {
+                                        if (uploadStatus) {
+                                            uploadStatus.classList.add('hidden');
+                                        }
+                                    }, 5000);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('OCR処理エラー:', error);
+                                showStatus(uploadStatus, `⚠️ OCR処理中にエラーが発生しました: ${error.message}`, 'error');
+                                setTimeout(() => {
+                                    if (uploadStatus) {
+                                        uploadStatus.classList.add('hidden');
+                                    }
+                                }, 5000);
+                            });
+                    } else {
+                        setTimeout(() => {
+                            if (uploadStatus) {
+                                uploadStatus.classList.add('hidden');
+                            }
+                        }, 3000);
+                    }
+                    
                     uploadForm.reset();
                     if (previewArea) {
                         previewArea.classList.add('hidden');
                         previewArea.innerHTML = '';
                     }
-
-                    setTimeout(() => {
-                        if (uploadStatus) {
-                            uploadStatus.classList.add('hidden');
-                        }
-                    }, 3000);
                 } else {
                     showStatus(uploadStatus, `❌ エラー: ${result.error}`, 'error');
                 }
