@@ -56,19 +56,6 @@
 
     <!-- メインJSファイル -->
     <script type="module" src="/src/main.js"></script>
-    
-    <!-- 診断用: JavaScriptが読み込まれているか確認 -->
-    <script>
-        console.log('✅ HTMLが読み込まれました');
-        console.log('✅ インラインスクリプトが実行されました');
-        
-        // JavaScriptファイルの読み込みを監視
-        window.addEventListener('error', (event) => {
-            if (event.target && event.target.tagName === 'SCRIPT') {
-                console.error('❌ スクリプトの読み込みエラー:', event.target.src || event.target.href);
-            }
-        }, true);
-    </script>
 </body>
 
 </html>

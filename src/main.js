@@ -7,8 +7,6 @@ import 'virtual:uno.css';
  * アプリ初期化
  */
 async function initApp() {
-    console.log('🚀 アプリを初期化中...');
-
     try {
         // 位置情報は初期化時には取得しない（ユーザーが選択後に取得）
         // デフォルト位置を設定（必要に応じて使用）
@@ -17,7 +15,6 @@ async function initApp() {
         // 画像拡大モーダルを初期化
         try {
             initImageModal();
-            console.log('✅ 画像拡大モーダル初期化完了');
         } catch (error) {
             console.error('⚠️ 画像拡大モーダル初期化エラー:', error);
             // 画像拡大機能は必須ではないので、エラーでも続行
@@ -30,8 +27,6 @@ async function initApp() {
         if (!window.location.hash) {
             window.location.hash = '/home';
         }
-
-        console.log('✅ アプリの初期化完了');
     } catch (error) {
         console.error('❌ アプリの初期化に失敗:', error);
 

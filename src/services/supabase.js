@@ -23,7 +23,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
             }
         });
         supabaseInitialized = true;
-        console.log('✅ Supabase接続成功');
     } catch (error) {
         console.error('❌ Supabase接続エラー:', error);
     }

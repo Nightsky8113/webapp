@@ -8,58 +8,32 @@ import { loadAndRenderTemplate } from '../utils/template.js';
  * テンプレートファイルを使用してHTMLを生成し、読み込み失敗時はフォールバックHTMLを返す
  */
 export async function HomePage(userLocation) {
-    console.log('🏠 HomePage開始', { userLocation });
+    const todayFlyers = await getTodayFlyers();
     
+    const { getStores } = await import('../services/dataService.js');
+    const allStores = await getStores();
+    
+    const storeIds = [...new Set(todayFlyers.map(f => f.store_id))];
+    const todayStores = allStores.filter(s => storeIds.includes(s.id));
+
+    const todayStoresHTMLPromises = todayFlyers.map(async flyer => {
+        const store = todayStores.find(s => s.id === flyer.store_id);
+        if (!store) return '';
+        return await StoreCard(store, flyer, undefined);
+    });
+    const todayStoresHTML = (await Promise.all(todayStoresHTMLPromises)).join('');
+
+    const templateData = {
+        hasTodayFlyers: todayFlyers.length > 0,
+        noTodayFlyers: todayFlyers.length === 0,
+        todayStoresHTML: todayStoresHTML
+    };
+
     try {
-        console.log('📊 今日のチラシを取得中...');
-        const todayFlyers = await getTodayFlyers();
-        console.log('✅ 今日のチラシを取得しました', { count: todayFlyers.length });
-        
-        console.log('📊 店舗データを取得中...');
-        const { getStores } = await import('../services/dataService.js');
-        const allStores = await getStores();
-        console.log('✅ 店舗データを取得しました', { count: allStores.length });
-        
-        const storeIds = [...new Set(todayFlyers.map(f => f.store_id))];
-        const todayStores = allStores.filter(s => storeIds.includes(s.id));
-        console.log('📋 今日のチラシの店舗をフィルタリングしました', { count: todayStores.length });
-
-        console.log('🃏 店舗カードを生成中...');
-        const todayStoresHTMLPromises = todayFlyers.map(async flyer => {
-            const store = todayStores.find(s => s.id === flyer.store_id);
-            if (!store) return '';
-            return await StoreCard(store, flyer, undefined);
-        });
-        const todayStoresHTML = (await Promise.all(todayStoresHTMLPromises)).join('');
-        console.log('✅ 店舗カードを生成しました', { htmlLength: todayStoresHTML.length });
-
-        const templateData = {
-            hasTodayFlyers: todayFlyers.length > 0,
-            noTodayFlyers: todayFlyers.length === 0,
-            todayStoresHTML: todayStoresHTML
-        };
-        console.log('📝 テンプレートデータを準備しました', templateData);
-
-        console.log('📄 テンプレートを読み込み中...');
-        try {
-            const html = await loadAndRenderTemplate('/templates/pages/home-page.html', templateData);
-            console.log('✅ テンプレートからHTMLを生成しました', { htmlLength: html?.length || 0 });
-            return html;
-        } catch (error) {
-            console.error('❌ テンプレート読み込み失敗:', error);
-            console.warn('⚠️ フォールバックHTMLを使用します');
-            const fallbackHtml = getHomePageHTMLFallback(todayFlyers, todayStoresHTML);
-            console.log('✅ フォールバックHTMLを生成しました', { htmlLength: fallbackHtml?.length || 0 });
-            return fallbackHtml;
-        }
+        return await loadAndRenderTemplate('/templates/pages/home-page.html', templateData);
     } catch (error) {
-        console.error('❌ HomePageでエラーが発生しました:', error);
-        console.error('エラー詳細:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
-        throw error;
+        console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
+        return getHomePageHTMLFallback(todayFlyers, todayStoresHTML);
     }
 }
 

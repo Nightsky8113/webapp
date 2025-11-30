@@ -28,7 +28,6 @@ export function initImageModal() {
     document.addEventListener('keydown', handleEscapeKey);
 
     document.body.dataset.imageModalInitialized = 'true';
-    console.log('✅ Image Modal initialized');
 }
 
 /**
