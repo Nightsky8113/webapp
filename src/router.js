@@ -147,6 +147,12 @@ export async function renderPage(userLocation) {
 
         let html;
 
+        console.log('🎨 ページを描画しようとしています...', { 
+            routeName: route.render.name,
+            hasParams: Object.keys(params).length > 0,
+            isSearch: window.location.hash.includes('/search')
+        });
+
         // 検索ページは検索クエリとフィルターオプションを受け取る
         if (window.location.hash.includes('/search')) {
             const query = queryParams.q || '';
@@ -156,20 +162,32 @@ export async function renderPage(userLocation) {
                 maxDistance: parseInt(queryParams.maxDistance) || 10,
                 sortBy: queryParams.sortBy || 'price-asc'
             };
+            console.log('🔍 検索ページを描画中...', { query, filters });
             html = await route.render(query, userLocation, filters);
+            console.log('✅ 検索ページのHTMLを取得しました', { htmlLength: html?.length || 0 });
         } else if (Object.keys(params).length > 0) {
             // パラメータ付きルート（例: /store/1, /genre/2/stores）の場合は数値に変換して渡す
             const paramValues = Object.values(params).map(val => {
                 const numVal = Number(val);
                 return !isNaN(numVal) && numVal.toString() === val ? numVal : val;
             });
+            console.log('📄 パラメータ付きページを描画中...', { paramValues, userLocation });
             html = await route.render(...paramValues, userLocation);
+            console.log('✅ パラメータ付きページのHTMLを取得しました', { htmlLength: html?.length || 0 });
         } else {
             // パラメータなしルート（例: /home, /genre）
+            console.log('🏠 パラメータなしページを描画中...', { userLocation });
             html = await route.render(userLocation);
+            console.log('✅ パラメータなしページのHTMLを取得しました', { htmlLength: html?.length || 0, htmlPreview: html?.substring(0, 200) });
         }
 
+        if (!html) {
+            throw new Error('ページのHTMLが空です: ' + route.render.name);
+        }
+
+        console.log('📝 HTMLをコンテナに設定します...', { htmlLength: html.length });
         appContainer.innerHTML = html;
+        console.log('✅ HTMLをコンテナに設定しました');
 
         // ページ固有のイベントハンドラーを設定（クリック、フォーム送信など）
         if (route.attachEvents) {
