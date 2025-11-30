@@ -11,7 +11,11 @@ export default defineConfig({
     ],
     server: {
         port: 3000,
-        open: true
+        open: true,
+        // 開発環境でのCSPを設定（ViteのHMR用にunsafe-evalを許可）
+        headers: {
+            'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https: ws: wss:; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self';"
+        }
     },
     build: {
         outDir: 'dist',

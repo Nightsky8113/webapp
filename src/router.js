@@ -180,19 +180,28 @@ export async function renderPage(userLocation) {
         }
     } catch (error) {
         console.error('ページ描画エラー:', error);
+        console.error('エラー詳細:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            route: route?.render?.name || 'unknown',
+            hash: window.location.hash
+        });
+        
         // エラー発生時にユーザーに分かりやすいエラーメッセージと復帰方法を表示
         appContainer.innerHTML = `
-      <div class="text-center py-12">
-        <div class="text-6xl mb-4">⚠️</div>
-        <p class="text-gray-500 text-lg mb-4">ページの読み込みに失敗しました</p>
-        <button 
-          onclick="window.location.hash = '/home'"
-          class="btn-primary"
-        >
-          ホームに戻る
-        </button>
-      </div>
-    `;
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">⚠️</div>
+                <p class="text-gray-500 text-lg mb-4">ページの読み込みに失敗しました</p>
+                <p class="text-gray-400 text-sm mb-4">${error.message || '不明なエラー'}</p>
+                <button 
+                    onclick="window.location.hash = '/home'"
+                    class="btn-primary"
+                >
+                    ホームに戻る
+                </button>
+            </div>
+        `;
     }
 }
 
