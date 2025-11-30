@@ -5,9 +5,10 @@ import { initRouter } from './router.js';
 import { getDefaultLocation } from './utils/location.js';
 import { initImageModal } from './utils/imageModal.js';
 import 'virtual:uno.css';
-import './styles/components.css';
-import './styles/pages.css';
-import './styles/image-modal.css';
+// CSSファイルはindex.htmlから直接読み込む（CSS分離後の問題を回避）
+// import './styles/components.css';
+// import './styles/pages.css';
+// import './styles/image-modal.css';
 
 /**
  * アプリケーション全体を初期化し、ルーティングとグローバルエラーハンドリングを設定する
