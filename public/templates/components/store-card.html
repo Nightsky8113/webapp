@@ -1,0 +1,69 @@
+<div class="store-card" data-store-id="${id}">
+  <!-- チラシサムネイル -->
+  <div class="relative">
+    <img 
+      src="${thumbnailUrl}" 
+      alt="${storeName}のチラシ"
+      class="w-full h-48 object-cover cursor-pointer"
+      loading="lazy"
+    />
+    <div class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+      NEW
+    </div>
+  </div>
+  
+  <!-- カード本体 -->
+  <div class="p-5">
+    <h3 class="font-bold text-xl mb-4 text-gray-800">${storeName}</h3>
+    
+    <div class="space-y-3 text-sm text-gray-600 mb-4">
+      <!-- 距離 -->
+      ${if:showDistance}
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📍</span>
+        <span class="font-medium">現在地から ${distanceText}</span>
+      </div>
+      ${endif}
+      
+      <!-- 最寄り駅 -->
+      ${if:station}
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🚶</span>
+        <span>${station}${if:hasWalkMinutes}から徒歩${walkMinutes}分${endif}</span>
+      </div>
+      ${endif}
+      
+      <!-- 住所（APIから取得した店舗の場合） -->
+      ${if:isFromAPI}
+      ${if:address}
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📍</span>
+        <span>${address}</span>
+      </div>
+      ${endif}
+      ${endif}
+      
+      <!-- おすすめ商品 -->
+      ${if:hasItemInfo}
+      <div class="item-highlight">
+        <div class="flex items-start gap-2">
+          <span class="text-xl">🏷️</span>
+          <div class="flex-1">
+            <div class="text-gray-700 font-medium text-base mb-1">${itemName}</div>
+            <div class="text-red-600 font-bold text-xl">${itemPrice}</div>
+          </div>
+        </div>
+      </div>
+      ${endif}
+      
+      ${if:isFromAPI}
+      ${if:!hasItemInfo}
+      <div class="text-gray-500 text-sm">
+        <p>※ この店舗はAPIから自動検出された店舗です。商品情報は表示されません。</p>
+      </div>
+      ${endif}
+      ${endif}
+    </div>
+  </div>
+</div>
+

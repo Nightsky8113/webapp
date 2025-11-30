@@ -40,7 +40,7 @@ export async function StoreCard(store, flyer, distance) {
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/components/store-card.html', templateData);
+        return await loadAndRenderTemplate('/templates/components/store-card.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);

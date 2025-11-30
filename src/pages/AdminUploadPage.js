@@ -25,7 +25,7 @@ export async function AdminUploadPage() {
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/admin-upload-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/admin-upload-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getAdminUploadPageHTMLFallback(storeOptionsHTML, stores.length);

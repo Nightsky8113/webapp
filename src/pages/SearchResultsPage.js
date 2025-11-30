@@ -72,7 +72,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
             storeId: item.store.id
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/components/search-result-item.html', itemData);
+            return await loadAndRenderTemplate('/templates/components/search-result-item.html', itemData);
         } catch (error) {
             return `
             <div class="search-result-card">
@@ -111,7 +111,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/search-results-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/search-results-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, sortBy, finalResults.length, resultsHTML);

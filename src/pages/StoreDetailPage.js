@@ -20,7 +20,7 @@ export async function StoreDetailPage(storeId, userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/store-detail-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/store-detail-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -58,7 +58,7 @@ export async function StoreDetailPage(storeId, userLocation) {
                 itemPrice: formatPrice(item.price)
             };
             try {
-                return await loadAndRenderTemplate('/src/templates/components/store-detail-item-card.html', itemData);
+                return await loadAndRenderTemplate('/templates/components/store-detail-item-card.html', itemData);
             } catch (error) {
                 return `
                 <div class="item-card">
@@ -111,7 +111,7 @@ export async function StoreDetailPage(storeId, userLocation) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/store-detail-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/store-detail-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, station, walkMinutes, imageUrl, updatedAt, isFav, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);

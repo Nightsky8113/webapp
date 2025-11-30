@@ -18,7 +18,7 @@ export async function GenrePage(userLocation) {
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/genre-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/genre-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getGenrePageHTMLFallback(genresHTML, genres.length);

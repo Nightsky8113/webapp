@@ -1,0 +1,117 @@
+${if:storeNotFound}
+<div class="empty-state">
+  <div class="empty-icon">❌</div>
+  <p class="empty-text">店舗が見つかりませんでした</p>
+  <button id="back-button" class="btn-primary mt-4">ホームに戻る</button>
+</div>
+${endif}
+${if:hasContent}
+<div class="space-y-6">
+  <!-- 戻るボタンとお気に入りボタン -->
+  <div class="flex items-center justify-between">
+    <button 
+      id="back-button"
+      class="btn-back"
+      aria-label="戻る"
+    >
+      <span class="text-lg">←</span>
+      <span>戻る</span>
+    </button>
+    
+    <!-- お気に入りボタン -->
+    <button 
+      id="favorite-button"
+      class="btn-favorite ${favoriteClass}"
+      data-store-id="${storeId}"
+      data-is-favorite="${isFavorite}"
+      aria-label="${favoriteText}"
+    >
+      <span class="text-xl">${favoriteIcon}</span>
+      <span>${favoriteText}</span>
+    </button>
+  </div>
+
+  <!-- 店舗情報カード -->
+  <div class="store-detail-card">
+    <!-- チラシ画像 -->
+    <div class="relative">
+      <a 
+        href="${imageUrl}" 
+        data-lightbox="store-detail-flyer" 
+        data-title="${storeName}のチラシ"
+        class="block cursor-pointer"
+      >
+        <img 
+          src="${imageUrl}"
+          alt="${storeName}のチラシ"
+          class="w-full h-80 object-cover"
+          loading="lazy"
+        />
+      </a>
+      <div class="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-md">
+        <span class="text-sm text-gray-600">更新日: ${updatedAt}</span>
+      </div>
+    </div>
+    
+    <!-- 店舗詳細 -->
+    <div class="p-8 space-y-6">
+      <h1 class="text-4xl font-bold text-gray-800">${storeName}</h1>
+      
+      <!-- 基本情報 -->
+      <div class="space-y-3 text-gray-600 text-lg">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">📍</span>
+          <div>
+            <div class="font-medium text-gray-700">住所</div>
+            <div>${address}</div>
+          </div>
+        </div>
+        
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">📏</span>
+          <div>
+            <div class="font-medium text-gray-700">現在地からの距離</div>
+            <div>${distance} km</div>
+          </div>
+        </div>
+        
+        ${if:station}
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">🚶</span>
+          <div>
+            <div class="font-medium text-gray-700">最寄り駅</div>
+            <div>${station}${if:hasWalkMinutes}から徒歩${walkMinutes}分${endif}</div>
+          </div>
+        </div>
+        ${endif}
+      </div>
+
+      <!-- 目玉商品 -->
+      ${if:hasItems}
+      <div class="border-t pt-6">
+        <h2 class="text-2xl font-bold mb-5 flex items-center gap-2">
+          <span>🏷️</span>
+          本日の目玉商品
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${itemsHTML}
+        </div>
+      </div>
+      ${endif}
+      ${if:noItems}
+      <div class="border-t pt-6">
+        <h2 class="text-2xl font-bold mb-5 flex items-center gap-2">
+          <span>🏷️</span>
+          おすすめ商品
+        </h2>
+        <div class="item-highlight">
+          <div class="text-xl font-bold text-gray-800 mb-2">${bestItemName}</div>
+          <div class="text-3xl font-bold text-red-600">${bestItemPrice}</div>
+        </div>
+      </div>
+      ${endif}
+    </div>
+  </div>
+</div>
+${endif}
+

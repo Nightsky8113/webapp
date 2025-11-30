@@ -1,0 +1,71 @@
+<div class="genre-page-container">
+  <!-- ヘッダー -->
+  <div class="genre-page-header">
+    <button 
+      id="back-button"
+      class="btn-back"
+      aria-label="戻る"
+    >
+      <span class="text-lg">←</span>
+      <span>戻る</span>
+    </button>
+    <h1 class="genre-page-title">商品から探す</h1>
+  </div>
+  
+  <!-- 説明 -->
+  <div class="info-box blue">
+    <p>
+      商品名で検索するか、ジャンルを選択してください。位置情報から5km圏内の商品を安い順で表示します。
+    </p>
+  </div>
+  
+  <!-- 商品名検索 -->
+  <div class="search-input-group">
+    <input
+      type="text"
+      id="product-search-input"
+      placeholder="商品名を入力して検索（例: 牛肉、りんご、トマト）..."
+      class="search-input"
+      aria-label="商品名検索"
+    />
+    <span class="search-icon">🔍</span>
+    <button
+      id="search-button"
+      class="search-button"
+      aria-label="検索実行"
+    >
+      検索
+    </button>
+  </div>
+
+  <!-- または -->
+  <div class="separator">
+    <div class="relative">
+      <div class="absolute inset-0 flex items-center">
+        <div class="line"></div>
+      </div>
+      <div class="relative flex justify-center">
+        <span class="text">または</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ジャンル一覧 -->
+  <div class="genres-section">
+    <h2 class="genres-section-title">ジャンルから選ぶ</h2>
+    <div 
+      id="genres-container" 
+      class="genres-grid"
+    >
+      ${genresHTML}
+    </div>
+  </div>
+  
+  ${if:noGenres}
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <p class="empty-text">ジャンルが見つかりませんでした</p>
+  </div>
+  ${endif}
+</div>
+

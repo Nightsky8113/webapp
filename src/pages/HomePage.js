@@ -42,7 +42,7 @@ export async function HomePage(userLocation) {
 
         console.log('📄 テンプレートを読み込み中...');
         try {
-            const html = await loadAndRenderTemplate('/src/templates/pages/home-page.html', templateData);
+            const html = await loadAndRenderTemplate('/templates/pages/home-page.html', templateData);
             console.log('✅ テンプレートからHTMLを生成しました', { htmlLength: html?.length || 0 });
             return html;
         } catch (error) {

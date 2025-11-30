@@ -19,7 +19,7 @@ export async function StoresPage(userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/stores-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/stores-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -96,7 +96,7 @@ export async function StoresPage(userLocation) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/stores-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/stores-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getStoresPageHTMLFallback(storesHTML, storesWithDistance.length);

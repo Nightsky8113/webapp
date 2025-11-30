@@ -18,7 +18,7 @@ export async function GenreCard(genre) {
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/components/genre-card.html', templateData);
+        return await loadAndRenderTemplate('/templates/components/genre-card.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return `

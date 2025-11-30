@@ -21,7 +21,7 @@ export async function GenreStoresPage(genreId, userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -41,7 +41,7 @@ export async function GenreStoresPage(genreId, userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -89,7 +89,7 @@ export async function GenreStoresPage(genreId, userLocation) {
         };
 
         try {
-            return await loadAndRenderTemplate('/src/templates/components/genre-store-item.html', itemData);
+            return await loadAndRenderTemplate('/templates/components/genre-store-item.html', itemData);
         } catch (error) {
             return `
             <li class="genre-store-item" data-store-id="${store.id}">
@@ -126,7 +126,7 @@ export async function GenreStoresPage(genreId, userLocation) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getGenreStoresPageHTMLFallback(genreName, icon, storesHTML, storesWithDistance.length);
