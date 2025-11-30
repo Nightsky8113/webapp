@@ -31,8 +31,10 @@ OpenAI APIの代替として、Google Gemini APIを使用します。個人開�
 `.env`ファイルに追加：
 
 ```env
-VITE_GOOGLE_GEMINI_API_KEY=AIzaSyC9atuKit-ppBJGilMU63solW3-2BZekOw
+VITE_GOOGLE_GEMINI_API_KEY=your-api-key-here
 ```
+
+⚠️ **重要**: 実際のAPIキーをドキュメントに書き込まないでください。セキュリティリスクがあります。
 
 ---
 

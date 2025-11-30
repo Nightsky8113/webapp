@@ -15,6 +15,6 @@ export default defineConfig({
     },
     build: {
         outDir: 'dist',
-        sourcemap: true
+        sourcemap: false // 本番環境ではソースマップを無効化（CSPエラーを回避）
     }
 });
