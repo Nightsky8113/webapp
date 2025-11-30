@@ -3,7 +3,6 @@ import { calculateDistance } from '../utils/distance.js';
 import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
 import { isFavorite, toggleFavorite } from '../utils/favorites.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
-import { initLightboxWithRetry } from '../utils/lightbox.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
 
 /**
@@ -186,7 +185,7 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
 
 /**
  * 店舗詳細ページに必要なイベントハンドラーを設定する
- * 戻るボタン、お気に入りボタン、画像拡大表示（Lightbox2）の初期化を設定する
+ * 戻るボタン、お気に入りボタンの初期化を設定する（画像拡大モーダルはmain.jsで初期化済み）
  */
 export function attachStoreDetailPageEvents() {
     const backButton = document.getElementById('back-button');
@@ -220,8 +219,6 @@ export function attachStoreDetailPageEvents() {
         });
     }
 
-    // DOM描画完了後にLightbox2を初期化して、動的に追加された画像にも対応する
-    setTimeout(() => {
-        initLightboxWithRetry(5, 200);
-    }, 300);
+    // 画像拡大モーダルは既にmain.jsで初期化されているため、ここでは何もしない
+    // data-lightbox属性を持つリンクは自動的にモーダルで開く
 }

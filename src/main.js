@@ -1,8 +1,10 @@
 import { initRouter } from './router.js';
 import { getDefaultLocation } from './utils/location.js';
+import { initImageModal } from './utils/imageModal.js';
 import 'virtual:uno.css';
 import './styles/components.css';
 import './styles/pages.css';
+import './styles/image-modal.css';
 
 /**
  * アプリケーション全体を初期化し、ルーティングとグローバルエラーハンドリングを設定する
@@ -13,6 +15,9 @@ async function initApp() {
 
     try {
         const defaultLocation = getDefaultLocation();
+
+        // 画像拡大モーダルを初期化（jQuery/Lightbox2の代わり）
+        initImageModal();
 
         // クライアントサイドルーティングを開始（位置情報は後で取得）
         initRouter(null);
