@@ -73,7 +73,7 @@ export async function StoreDetailPage(storeId, userLocation) {
     const storeName = escapeHtml(store.name);
     const address = escapeHtml(store.address || '');
     const station = escapeHtml(store.nearest_station || '');
-    const imageUrl = flyer?.image_url || 'https://via.placeholder.com/800x600?text=No+Image';
+    const imageUrl = flyer?.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
     const updatedAt = flyer ? formatDate(flyer.updated_at) : '-';
     
     // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）

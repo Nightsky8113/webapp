@@ -14,7 +14,10 @@ let cache = {
     cacheTime: {}
 };
 
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 5 * 60 * 1000; // 5分
+
+// 店舗の重複判定用の距離閾値（約100m）
+const STORE_DUPLICATE_THRESHOLD = 0.001;
 
 /**
  * 指定されたキーのキャッシュが有効期限内かどうかを判定する
@@ -373,7 +376,6 @@ export async function createFlyer(flyerData) {
 
         clearCache();
 
-        console.log('チラシ作成成功:', data);
         return {
             success: true,
             data: data
@@ -422,7 +424,7 @@ export async function addStoreIfNotExists(storeData) {
         const isDuplicate = existingStores.some(dbStore => {
             const latDiff = Math.abs(dbStore.latitude - latitude);
             const lngDiff = Math.abs(dbStore.longitude - longitude);
-            return latDiff < 0.001 && lngDiff < 0.001;
+            return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
         });
 
         if (isDuplicate) {
@@ -430,13 +432,11 @@ export async function addStoreIfNotExists(storeData) {
             const existingStore = existingStores.find(dbStore => {
                 const latDiff = Math.abs(dbStore.latitude - latitude);
                 const lngDiff = Math.abs(dbStore.longitude - longitude);
-                return latDiff < 0.001 && lngDiff < 0.001;
+                return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
             });
             
             // 既存店舗の住所がNULLで、新しい住所が取得できている場合は住所を更新
             if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && address && address.trim() !== '') {
-                console.log(`店舗「${existingStore.name}」の住所を更新します: ${address}`);
-                
                 const { data: updatedStore, error: updateError } = await supabase
                     .from('stores')
                     .update({ address: address.trim() })
@@ -458,7 +458,6 @@ export async function addStoreIfNotExists(storeData) {
                 // キャッシュをクリアして最新データを取得できるようにする
                 clearCache();
                 
-                console.log('住所更新成功:', updatedStore);
                 return {
                     success: true,
                     store: updatedStore,
@@ -507,7 +506,6 @@ export async function addStoreIfNotExists(storeData) {
         // キャッシュをクリアして最新データを取得できるようにする
         clearCache();
 
-        console.log('店舗追加成功:', data);
         return {
             success: true,
             store: data,
@@ -560,7 +558,6 @@ export async function updateFlyer(flyerId, updateData) {
 
         clearCache();
 
-        console.log('チラシ更新成功:', data);
         return {
             success: true,
             data: data

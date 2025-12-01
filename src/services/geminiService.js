@@ -36,11 +36,6 @@ export async function structureOCRText(ocrText, storeId) {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
         const prompt = createPrompt(ocrText, storeId);
-        
-        console.log('Google Gemini API: テキスト構造化処理を実行中...', { 
-            textLength: ocrText.length,
-            storeId 
-        });
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -129,11 +124,6 @@ export async function structureOCRText(ocrText, storeId) {
                 category: String(item.category || '').trim()
             }))
             .filter(item => item.name.length > 0 && item.price > 0);
-
-        console.log('Google Gemini API: テキスト構造化処理完了', { 
-            itemsCount: items.length,
-            itemsPreview: items.slice(0, 3)
-        });
 
         return {
             success: true,

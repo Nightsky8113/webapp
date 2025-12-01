@@ -31,21 +31,71 @@ export async function loadTemplate(path) {
 export function renderTemplate(template, data = {}) {
     let html = template;
     
+    // データ値にテンプレートタグが含まれている場合は、一時的にプレースホルダーに置換
+    // これにより、親テンプレートのレンダリング時に子テンプレートのタグが処理されないようにする
+    const placeholders = new Map();
+    let placeholderIndex = 0;
+    const placeholderPrefix = '__PLACEHOLDER_';
+    
+    // データ値からテンプレートタグを含むものを一時的に置換
+    const processedData = {};
     Object.keys(data).forEach(key => {
-        const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
-        html = html.replace(regex, data[key]);
-    });
-    
-    html = html.replace(/\$\{if:([^}]+)\}([\s\S]*?)\$\{endif\}/g, (match, condition, content) => {
-        const conditionValue = data[condition];
-        if (conditionValue && conditionValue !== false && conditionValue !== '') {
-            return content;
+        let value = data[key];
+        if (typeof value === 'string' && (value.includes('${') || value.includes('${if:') || value.includes('${endif}'))) {
+            const placeholder = `${placeholderPrefix}${placeholderIndex++}__`;
+            placeholders.set(placeholder, value);
+            processedData[key] = placeholder;
+        } else {
+            processedData[key] = value;
         }
-        return '';
     });
     
+    // まず条件分岐を処理（ネストされた条件分岐も正しく処理する）
+    // 外側から内側へ、再帰的に処理する必要がある
+    let maxIterations = 10; // 無限ループを防ぐ
+    let iteration = 0;
+    
+    while (html.includes('${if:') && iteration < maxIterations) {
+        iteration++;
+        html = html.replace(/\$\{if:([^}]+)\}([\s\S]*?)\$\{endif\}/g, (match, condition, content) => {
+            // プレースホルダー内でないことを確認
+            if (match.includes(placeholderPrefix)) {
+                return match; // プレースホルダー内のタグは処理しない
+            }
+            
+            // 条件名から否定演算子をチェック
+            let conditionName = condition.trim();
+            let isNegated = false;
+            if (conditionName.startsWith('!')) {
+                conditionName = conditionName.substring(1).trim();
+                isNegated = true;
+            }
+            
+            const conditionValue = processedData[conditionName] !== undefined ? processedData[conditionName] : data[conditionName];
+            let shouldShow = false;
+            
+            if (isNegated) {
+                // 否定条件: 値がfalse、null、undefined、空文字列の場合に表示
+                shouldShow = !conditionValue || conditionValue === false || conditionValue === '';
+            } else {
+                // 通常条件: 値がtruthyの場合に表示
+                shouldShow = conditionValue && conditionValue !== false && conditionValue !== '';
+            }
+            
+            if (shouldShow) {
+                return content;
+            }
+            return '';
+        });
+    }
+    
+    // 次にeachループを処理
     html = html.replace(/\$\{each:([^}]+)\}([\s\S]*?)\$\{endeach\}/g, (match, arrayKey, content) => {
-        const array = data[arrayKey] || [];
+        if (match.includes(placeholderPrefix)) {
+            return match; // プレースホルダー内のタグは処理しない
+        }
+        
+        const array = processedData[arrayKey] !== undefined ? processedData[arrayKey] : (data[arrayKey] || []);
         return array.map(item => {
             let itemHtml = content;
             Object.keys(item).forEach(key => {
@@ -54,6 +104,25 @@ export function renderTemplate(template, data = {}) {
             });
             return itemHtml;
         }).join('');
+    });
+    
+    // 最後に変数置換を処理
+    Object.keys(data).forEach(key => {
+        const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+        let value = processedData[key] !== undefined ? processedData[key] : data[key];
+        // nullやundefinedの場合は空文字列にする（"null"という文字列が表示されるのを防ぐ）
+        if (value === null || value === undefined) {
+            value = '';
+        } else if (typeof value === 'object') {
+            // オブジェクトの場合はJSON文字列に変換（デバッグ用）
+            value = JSON.stringify(value);
+        }
+        html = html.replace(regex, value);
+    });
+    
+    // プレースホルダーを元の値に戻す
+    placeholders.forEach((value, placeholder) => {
+        html = html.replace(placeholder, value);
     });
     
     return html;

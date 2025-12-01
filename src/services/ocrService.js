@@ -21,10 +21,7 @@ import { supabase, supabaseInitialized } from './supabase.js';
  * @returns {Promise<Object>} {success: boolean, items?: Array, error?: string}
  */
 export async function processFlyerOCR(imageUrl, flyerId, storeId) {
-    console.log('OCR処理開始:', { imageUrl, flyerId, storeId });
-
     // ステップ1: Google Cloud Vision APIでテキスト抽出
-    console.log('ステップ1: テキスト抽出中...');
     const ocrResult = await extractTextFromImage(imageUrl);
     
     if (!ocrResult.success || !ocrResult.text) {
@@ -34,10 +31,7 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
         };
     }
 
-    console.log('テキスト抽出完了:', { textLength: ocrResult.text.length });
-
     // ステップ2: Google Gemini APIでテキストを構造化
-    console.log('ステップ2: テキスト構造化中...');
     const structureResult = await structureOCRText(ocrResult.text, storeId);
     
     if (!structureResult.success || !structureResult.items) {
@@ -47,25 +41,16 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
         };
     }
 
-    console.log('テキスト構造化完了:', { itemsCount: structureResult.items.length });
-
     // ステップ3: 商品情報をデータベースに保存
     if (structureResult.items.length > 0) {
         if (supabaseInitialized) {
-            console.log('ステップ3: データベースに保存中...');
             const saveResult = await saveItemsToDatabase(structureResult.items, flyerId, storeId);
             
             if (!saveResult.success) {
-                console.warn('⚠️ データベース保存に失敗しました:', saveResult.error);
+                console.warn('データベース保存に失敗しました:', saveResult.error);
                 // 保存失敗しても、抽出した商品情報は返す
-            } else {
-                console.log('✅ データベース保存完了:', { savedCount: saveResult.savedCount });
             }
-        } else {
-            console.warn('⚠️ Supabaseが初期化されていないため、データベースに保存できません');
         }
-    } else {
-        console.warn('⚠️ 抽出された商品情報が0件のため、データベースに保存しません');
     }
 
     // ステップ4: OCR処理完了フラグを更新
@@ -135,8 +120,6 @@ async function updateOCRStatus(flyerId, ocrDone) {
 
         if (error) {
             console.error('OCRステータス更新エラー:', error);
-        } else {
-            console.log('OCRステータス更新完了:', { flyerId, ocrDone });
         }
     } catch (error) {
         console.error('OCRステータス更新エラー:', error);

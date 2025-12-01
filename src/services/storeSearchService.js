@@ -23,28 +23,4 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
     }
 }
 
-/**
- * 複数のAPIプロバイダーから検索結果を取得し、重複を排除して統合する
- * 将来的にOverpass APIとGoogle Places APIの両方を使用する場合に備えた機能
- */
-export async function searchWithBothAPIs(lat, lng, radius = 2000) {
-    const results = await Promise.allSettled([
-        searchWithOverpassAPI(lat, lng, radius)
-    ]);
-
-    const stores = [];
-    const processedIds = new Set();
-
-    if (results[0].status === 'fulfilled') {
-        results[0].value.forEach(store => {
-            const key = `${store.latitude}_${store.longitude}`;
-            if (!processedIds.has(key)) {
-                stores.push(store);
-                processedIds.add(key);
-            }
-        });
-    }
-
-    return stores;
-}
 

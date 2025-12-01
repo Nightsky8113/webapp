@@ -60,8 +60,6 @@ export async function extractTextFromImage(imageUrl) {
             ]
         };
 
-        console.log('Google Cloud Vision API: OCR処理を実行中...', { imageUrl });
-        
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -107,11 +105,6 @@ export async function extractTextFromImage(imageUrl) {
 
         // 最初の要素に全テキストが含まれている
         const extractedText = textAnnotations[0].description || '';
-        
-        console.log('Google Cloud Vision API: OCR処理完了', { 
-            textLength: extractedText.length,
-            textPreview: extractedText.substring(0, 100) + '...'
-        });
 
         return {
             success: true,

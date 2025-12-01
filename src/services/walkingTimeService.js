@@ -20,8 +20,6 @@ export async function calculateWalkingRoute(stationLat, stationLng, storeLat, st
         // 経度,緯度;経度,緯度の形式で座標を指定
         const url = `https://router.project-osrm.org/route/v1/walking/${stationLng},${stationLat};${storeLng},${storeLat}?overview=false&steps=false`;
         
-        console.log('OSRM API: 徒歩ルートを計算中...', { stationLat, stationLng, storeLat, storeLng });
-        
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -42,8 +40,6 @@ export async function calculateWalkingRoute(stationLat, stationLng, storeLat, st
         
         // 秒を分に変換（切り上げ）
         const walkMinutes = Math.ceil(duration / 60);
-        
-        console.log(`OSRM API: 計算完了 - 距離: ${distance.toFixed(0)}m, 時間: ${duration.toFixed(0)}秒 (${walkMinutes}分)`);
         
         return {
             distance: distance,
@@ -95,7 +91,6 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
     
     // 既に保存されている場合、再計算が要求されていない場合はその値を返す
     if (!forceRecalculate && store.summary_walk_minutes) {
-        console.log(`店舗 ${storeId}: 保存済みの徒歩時間 ${store.summary_walk_minutes}分を使用`);
         return store.summary_walk_minutes;
     }
     
@@ -135,8 +130,6 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
     if (updateError) {
         console.error('徒歩時間保存エラー:', updateError);
         // エラーが発生しても計算結果は返す
-    } else {
-        console.log(`店舗 ${storeId}: 徒歩時間 ${walkMinutes}分をデータベースに保存しました`);
     }
     
     return walkMinutes;
@@ -151,12 +144,8 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
 export async function batchUpdateWalkingTimes(storeIds) {
     const results = { success: [], failed: [] };
     
-    console.log(`${storeIds.length}件の店舗の徒歩時間を一括計算します...`);
-    
     for (let i = 0; i < storeIds.length; i++) {
         const storeId = storeIds[i];
-        console.log(`[${i + 1}/${storeIds.length}] 店舗 ${storeId} の徒歩時間を計算中...`);
-        
         const walkMinutes = await getWalkingTime(storeId, true); // 強制再計算
         
         if (walkMinutes !== null) {
@@ -170,8 +159,6 @@ export async function batchUpdateWalkingTimes(storeIds) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
-    
-    console.log(`一括計算完了: 成功 ${results.success.length}件, 失敗 ${results.failed.length}件`);
     
     return results;
 }

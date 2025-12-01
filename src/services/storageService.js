@@ -88,7 +88,6 @@ export async function uploadFlyerImage(file, storeId, options = {}) {
 
         const url = await getImageUrl(filePath);
 
-        console.log('画像アップロード成功:', { path: filePath, url });
         return {
             success: true,
             path: filePath,
@@ -149,7 +148,6 @@ export async function deleteImage(path) {
             };
         }
 
-        console.log('画像削除成功:', path);
         return {
             success: true
         };
@@ -251,7 +249,6 @@ export async function uploadAndSaveFlyer(file, storeId, options = {}) {
             };
         }
 
-        console.log('画像アップロードとデータベース保存成功:', saveResult.data);
         return {
             success: true,
             flyer: saveResult.data,

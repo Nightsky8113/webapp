@@ -40,7 +40,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
     const cacheKey = getCacheKey(lat, lng, radius);
     const cached = cache[cacheKey];
     if (cached && Date.now() - cached.time < CACHE_DURATION) {
-        console.log('Overpass API: キャッシュから店舗データを取得');
         return cached.data;
     }
 
@@ -55,7 +54,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
     `;
 
     try {
-        console.log('Overpass API: 店舗を検索中...', { lat, lng, radius });
         const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
         const response = await fetch(url);
         
@@ -66,7 +64,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
         const data = await response.json();
 
         if (!data.elements || data.elements.length === 0) {
-            console.log('Overpass API: 店舗が見つかりませんでした');
             return [];
         }
 
@@ -136,8 +133,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
         });
 
         stores.sort((a, b) => a.distance - b.distance);
-
-        console.log(`Overpass API: ${stores.length}件の店舗を取得しました`);
 
         cache[cacheKey] = {
             data: stores,
