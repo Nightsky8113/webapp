@@ -20,23 +20,11 @@
     <div class="upload-form-card">
       <form id="upload-form">
         <div class="form-group">
-          <label for="store-search" class="form-label">店舗を選択</label>
-          <div class="store-search-container">
-            <input 
-              type="text" 
-              id="store-search" 
-              name="storeSearch" 
-              class="form-input store-search-input" 
-              placeholder="店舗名で検索..."
-              autocomplete="off"
-            />
-            <div id="store-autocomplete" class="store-autocomplete hidden"></div>
-            <select id="store-select" name="storeId" class="form-select store-select-hidden" required>
-              <option value="">-- 店舗を選択してください --</option>
-              ${storeOptionsHTML}
-            </select>
-          </div>
-          <p class="form-help">店舗名を入力すると候補が表示されます</p>
+          <label for="store-select" class="form-label">店舗を選択</label>
+          <select id="store-select" name="storeId" class="form-select" required>
+            <option value="">-- 店舗を選択してください --</option>
+            ${storeOptionsHTML}
+          </select>
         </div>
 
         <div class="form-group">

@@ -11,8 +11,13 @@ import { processFlyerOCR } from '../services/ocrService.js';
 export async function AdminUploadPage() {
     const stores = await getStores();
     
+    // 店舗をあいうえお順でソート
+    const sortedStores = [...stores].sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ja');
+    });
+    
     // 店舗選択オプションのHTMLを生成
-    const storeOptionsHTML = stores.map(store => {
+    const storeOptionsHTML = sortedStores.map(store => {
         const storeName = escapeHtml(store.name);
         return `<option value="${store.id}">${storeName}</option>`;
     }).join('');
@@ -105,9 +110,6 @@ export async function attachAdminUploadPageEvents() {
         });
     }
 
-    // 店舗検索・予測変換機能の初期化
-    await initStoreSearch();
-
     const fileInput = document.getElementById('file-input');
     const uploadForm = document.getElementById('upload-form');
     const previewArea = document.getElementById('preview-area');
@@ -136,11 +138,6 @@ export async function attachAdminUploadPageEvents() {
             }
 
             const storeId = parseInt(storeSelect.value);
-            
-            if (!storeId) {
-                showStatus(uploadStatus, 'エラー: 店舗を選択してください。', 'error');
-                return;
-            }
             const file = fileInput.files[0];
 
             if (!storeId) {
