@@ -1,7 +1,6 @@
 import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId } from '../services/dataService.js';
 import { calculateDistance } from '../utils/distance.js';
 import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
-import { isFavorite, toggleFavorite } from '../utils/favorites.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
 
@@ -72,36 +71,29 @@ export async function StoreDetailPage(storeId, userLocation) {
     }
 
     const storeName = escapeHtml(store.name);
-    const address = escapeHtml(store.address);
+    const address = escapeHtml(store.address || '');
     const station = escapeHtml(store.nearest_station || '');
     const imageUrl = flyer?.image_url || 'https://via.placeholder.com/800x600?text=No+Image';
     const updatedAt = flyer ? formatDate(flyer.updated_at) : '-';
-    const isFav = isFavorite(storeId);
     
     // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
     const walkMinutes = await getWalkingTime(storeId);
-
-    // テンプレートデータを準備
-    const favoriteClass = isFav ? 'active' : 'inactive';
-    const favoriteIcon = isFav ? '❤️' : '🤍';
-    const favoriteText = isFav ? 'お気に入り済み' : 'お気に入りに追加';
     
+    // 距離表示用テキスト（距離が計算されていない場合は「-」のみ、計算されている場合は「X.X km」）
+    const distanceText = distance > 0 ? `${distance.toFixed(1)} km` : '-';
+
     const templateData = {
         storeNotFound: false,
         hasContent: true,
         storeId: storeId,
         storeName: storeName,
         address: address,
-        distance: distance > 0 ? distance.toFixed(1) : '-',
+        distanceText: distanceText,
         station: station,
         walkMinutes: walkMinutes || null,
         hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
         imageUrl: imageUrl,
         updatedAt: updatedAt,
-        isFavorite: isFav,
-        favoriteClass: favoriteClass,
-        favoriteIcon: favoriteIcon,
-        favoriteText: favoriteText,
         hasItems: itemsHTML.length > 0,
         noItems: itemsHTML.length === 0,
         itemsHTML: itemsHTML,
@@ -114,22 +106,19 @@ export async function StoreDetailPage(storeId, userLocation) {
         return await loadAndRenderTemplate('/templates/pages/store-detail-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        return getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, station, walkMinutes, imageUrl, updatedAt, isFav, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);
+        const distanceText = distance > 0 ? `${distance.toFixed(1)} km` : '-';
+        return getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceText, station, walkMinutes, imageUrl, updatedAt, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);
     }
 }
 
 /**
  * フォールバック用HTML（テンプレート読み込み失敗時）
  */
-function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, station, walkMinutes, imageUrl, updatedAt, isFav, itemsHTML, bestItemName, bestItemPrice) {
+function getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceText, station, walkMinutes, imageUrl, updatedAt, itemsHTML, bestItemName, bestItemPrice) {
     return `
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <button id="back-button" class="btn-back"><span class="text-lg">←</span><span>戻る</span></button>
-        <button id="favorite-button" class="btn-favorite ${isFav ? 'active' : 'inactive'}" data-store-id="${storeId}" data-is-favorite="${isFav}">
-          <span class="text-xl">${isFav ? '❤️' : '🤍'}</span>
-          <span>${isFav ? 'お気に入り済み' : 'お気に入りに追加'}</span>
-        </button>
       </div>
       <div class="store-detail-card">
         <div class="relative">
@@ -154,7 +143,7 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
             </div>
             <div class="flex items-start gap-3">
               <span class="text-2xl">📏</span>
-              <div><div class="font-medium text-gray-700">現在地からの距離</div><div>${distance.toFixed(1)} km</div></div>
+              <div><div class="font-medium text-gray-700">現在地からの距離</div><div>${distanceText}</div></div>
             </div>
             ${station ? `
             <div class="flex items-start gap-3">
@@ -185,37 +174,13 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distance, s
 
 /**
  * 店舗詳細ページに必要なイベントハンドラーを設定する
- * 戻るボタン、お気に入りボタンの初期化を設定する（画像拡大モーダルはmain.jsで初期化済み）
+ * 戻るボタンの初期化を設定する（画像拡大モーダルはmain.jsで初期化済み）
  */
 export function attachStoreDetailPageEvents() {
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
             window.history.back();
-        });
-    }
-
-    const favoriteButton = document.getElementById('favorite-button');
-    if (favoriteButton) {
-        favoriteButton.addEventListener('click', () => {
-            const storeId = parseInt(favoriteButton.dataset.storeId);
-            const newState = toggleFavorite(storeId);
-
-            if (newState) {
-                favoriteButton.className = 'btn-favorite active';
-                favoriteButton.innerHTML = `
-          <span class="text-xl">❤️</span>
-          <span>お気に入り済み</span>
-        `;
-            } else {
-                favoriteButton.className = 'btn-favorite inactive';
-                favoriteButton.innerHTML = `
-          <span class="text-xl">🤍</span>
-          <span>お気に入りに追加</span>
-        `;
-            }
-
-            favoriteButton.dataset.isFavorite = newState;
         });
     }
 

@@ -159,12 +159,18 @@ export async function attachStoresPageEvents() {
     const container = document.getElementById('stores-container');
     if (container) {
         attachStoreCardEvents(container, (storeId) => {
-            // 外部APIから取得した店舗は詳細ページがないため、クリックしても遷移しない
-            if (typeof storeId === 'string' && storeId.startsWith('overpass_')) {
+            // 外部APIから取得した店舗（文字列IDでoverpass_またはapi_で始まる）は詳細ページがないため、クリックしても遷移しない
+            if (typeof storeId === 'string' && (storeId.startsWith('overpass_') || storeId.startsWith('api_'))) {
                 console.log('APIから取得した店舗のため詳細ページはありません');
                 return;
             }
-            window.location.hash = `/store/${storeId}`;
+            // 数値IDの場合のみ詳細ページに遷移
+            const numericId = parseInt(storeId);
+            if (!isNaN(numericId) && numericId > 0) {
+                window.location.hash = `/store/${numericId}`;
+            } else {
+                console.warn('無効な店舗ID:', storeId);
+            }
         });
     }
 

@@ -7,8 +7,8 @@ ${if:storeNotFound}
 ${endif}
 ${if:hasContent}
 <div class="space-y-6">
-  <!-- 戻るボタンとお気に入りボタン -->
-  <div class="flex items-center justify-between">
+  <!-- 戻るボタン -->
+  <div class="flex items-center">
     <button 
       id="back-button"
       class="btn-back"
@@ -16,18 +16,6 @@ ${if:hasContent}
     >
       <span class="text-lg">←</span>
       <span>戻る</span>
-    </button>
-    
-    <!-- お気に入りボタン -->
-    <button 
-      id="favorite-button"
-      class="btn-favorite ${favoriteClass}"
-      data-store-id="${storeId}"
-      data-is-favorite="${isFavorite}"
-      aria-label="${favoriteText}"
-    >
-      <span class="text-xl">${favoriteIcon}</span>
-      <span>${favoriteText}</span>
     </button>
   </div>
 
@@ -71,7 +59,7 @@ ${if:hasContent}
           <span class="text-2xl">📏</span>
           <div>
             <div class="font-medium text-gray-700">現在地からの距離</div>
-            <div>${distance} km</div>
+            <div>${distanceText}</div>
           </div>
         </div>
         
