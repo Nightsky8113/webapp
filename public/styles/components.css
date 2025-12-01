@@ -3,6 +3,17 @@
  * カスタムクラスを定義して、JSからUnoCSSクラス名を分離
  */
 
+/* ヘッダーナビゲーション */
+#app-header nav a {
+  white-space: nowrap;
+}
+
+#app-header nav a.active {
+  color: #3b82f6;
+  background-color: #eff6ff;
+  font-weight: 600;
+}
+
 /* ボタンスタイル */
 .btn-back {
   background-color: #ffffff;
