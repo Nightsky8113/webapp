@@ -81,3 +81,4 @@ npm install jquery lightbox2
 **最終更新**: 2025年1月
 **ステータス**: ✅ 修正済み（vercel.jsonにCSPヘッダー追加）
 
+

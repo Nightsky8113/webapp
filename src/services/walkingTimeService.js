@@ -164,3 +164,4 @@ export async function batchUpdateWalkingTimes(storeIds) {
     return results;
 }
 
+

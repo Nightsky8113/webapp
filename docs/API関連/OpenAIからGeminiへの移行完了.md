@@ -174,3 +174,4 @@ https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generat
 **移行完了日**: 2025年1月
 **ステータス**: ✅ 移行完了（Gemini APIキーの設定が必要）
 
+
