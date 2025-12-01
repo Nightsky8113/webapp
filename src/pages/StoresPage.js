@@ -46,8 +46,9 @@ export async function StoresPage(userLocation) {
         // エラーが発生してもデータベースの店舗は表示する
     }
 
-    // APIから取得した店舗をデータベースに追加（存在しない場合のみ）
-    const storesToAdd = [];
+    // データベースの店舗とAPIから取得した店舗を統合
+    // まず、APIから取得した店舗をデータベースに追加（存在しない場合のみ）
+    const addedStoreIds = new Set();
     for (const apiStore of apiStores) {
         const result = await addStoreIfNotExists({
             name: apiStore.name,
@@ -57,17 +58,39 @@ export async function StoresPage(userLocation) {
         });
         
         if (result.success && result.store) {
-            storesToAdd.push(result.store);
+            addedStoreIds.add(result.store.id);
+            console.log(`店舗を追加しました: ${result.store.name} (ID: ${result.store.id})`);
         } else if (result.success && !result.isNew) {
-            // 既存の店舗も追加リストに含める
-            storesToAdd.push(result.store);
+            // 既存の店舗
+            addedStoreIds.add(result.store.id);
         } else {
             console.warn('店舗追加に失敗しました:', result.error);
         }
     }
 
     // データベースの店舗を再取得（追加された店舗を含む）
-    const allStores = await getStores(true);
+    const dbStores = await getStores(true);
+
+    // APIから取得した店舗のうち、DBに追加されなかったもの（エラーなど）も含める
+    // これにより、DBに追加されていなくても表示できる
+    const allStores = [...dbStores];
+    
+    // APIから取得した店舗で、DBに追加されていないものを追加
+    apiStores.forEach(apiStore => {
+        const isInDb = dbStores.some(dbStore => {
+            const latDiff = Math.abs(dbStore.latitude - apiStore.latitude);
+            const lngDiff = Math.abs(dbStore.longitude - apiStore.longitude);
+            return latDiff < 0.001 && lngDiff < 0.001;
+        });
+        
+        if (!isInDb) {
+            // DBに存在しない場合は、APIから取得した店舗をそのまま追加
+            allStores.push({
+                ...apiStore,
+                id: apiStore.id || `api_${apiStore.latitude}_${apiStore.longitude}`
+            });
+        }
+    });
 
     // 距離順にソート（最大6件）
     const storesWithDistance = sortByDistance(allStores, userLocation).slice(0, 6);
@@ -175,8 +198,10 @@ export async function attachStoresPageEvents() {
                     console.error('地図表示時の店舗検索エラー:', error);
                 }
 
-                // データベースの店舗とAPI検索結果を統合
+                // データベースの店舗とAPI検索結果を統合（StoresPage関数と同じロジック）
                 const allStores = [...stores];
+                
+                // APIから取得した店舗のうち、DBに存在しないものを追加
                 apiStores.forEach(apiStore => {
                     const isDuplicate = stores.some(dbStore => {
                         const latDiff = Math.abs(dbStore.latitude - apiStore.latitude);
