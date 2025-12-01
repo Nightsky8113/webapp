@@ -27,6 +27,14 @@ async function initApp() {
         if (!window.location.hash) {
             window.location.hash = '/home';
         }
+
+        // ロゴクリックでホームに戻る
+        const logo = document.getElementById('logo');
+        if (logo) {
+            logo.addEventListener('click', () => {
+                window.location.hash = '/home';
+            });
+        }
     } catch (error) {
         console.error('❌ アプリの初期化に失敗:', error);
 

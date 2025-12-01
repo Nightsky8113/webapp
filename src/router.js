@@ -231,8 +231,33 @@ export function initRouter(userLocation) {
     // URLハッシュの変更を監視してページ遷移を実現
     window.addEventListener('hashchange', () => {
         renderPage(userLocation);
+        updateActiveNavLink();
     });
 
     // アプリ起動時の初回ページ描画
     renderPage(userLocation);
+    updateActiveNavLink();
+}
+
+/**
+ * 現在のページに応じてナビゲーションリンクのアクティブ状態を更新する
+ */
+function updateActiveNavLink() {
+    const hash = window.location.hash.slice(1) || '/home';
+    const currentPath = hash.split('?')[0];
+    
+    // すべてのナビゲーションリンクからactiveクラスを削除
+    const navLinks = document.querySelectorAll('#app-header nav a');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        
+        // リンクのhrefと現在のパスを比較
+        const linkPath = link.getAttribute('href')?.replace('#', '') || '';
+        
+        // 完全一致またはパスが含まれる場合（例: /store/1 は /store を含む）
+        if (currentPath === linkPath || 
+            (linkPath !== '/home' && currentPath.startsWith(linkPath))) {
+            link.classList.add('active');
+        }
+    });
 }
