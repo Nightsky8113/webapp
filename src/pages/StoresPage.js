@@ -159,13 +159,17 @@ export async function attachStoresPageEvents() {
     const container = document.getElementById('stores-container');
     if (container) {
         attachStoreCardEvents(container, (storeId) => {
+            // storeIdは文字列として取得される（data-store-id属性から）
+            const storeIdStr = String(storeId);
+            
             // 外部APIから取得した店舗（文字列IDでoverpass_またはapi_で始まる）は詳細ページがないため、クリックしても遷移しない
-            if (typeof storeId === 'string' && (storeId.startsWith('overpass_') || storeId.startsWith('api_'))) {
-                console.log('APIから取得した店舗のため詳細ページはありません');
+            if (storeIdStr.startsWith('overpass_') || storeIdStr.startsWith('api_')) {
+                console.log('APIから取得した店舗のため詳細ページはありません:', storeIdStr);
                 return;
             }
+            
             // 数値IDの場合のみ詳細ページに遷移
-            const numericId = parseInt(storeId);
+            const numericId = parseInt(storeIdStr, 10);
             if (!isNaN(numericId) && numericId > 0) {
                 // URLから位置情報を取得して店舗詳細ページのURLに含める
                 const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
@@ -178,7 +182,7 @@ export async function attachStoresPageEvents() {
                     window.location.hash = `/store/${numericId}`;
                 }
             } else {
-                console.warn('無効な店舗ID:', storeId);
+                console.warn('無効な店舗ID:', storeIdStr, '(型:', typeof storeId, ')');
             }
         });
     }

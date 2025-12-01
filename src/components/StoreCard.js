@@ -106,8 +106,10 @@ export function attachStoreCardEvents(container, onCardClick) {
     container.addEventListener('click', (e) => {
         const card = e.target.closest('[data-store-id]');
         if (card) {
-            const storeId = parseInt(card.dataset.storeId);
+            // data-store-id属性から値を取得（文字列として取得される）
+            const storeId = card.dataset.storeId;
             if (onCardClick && typeof onCardClick === 'function') {
+                // コールバック関数にそのまま渡す（文字列または数値の判定はコールバック側で行う）
                 onCardClick(storeId);
             }
         }
