@@ -167,7 +167,16 @@ export async function attachStoresPageEvents() {
             // 数値IDの場合のみ詳細ページに遷移
             const numericId = parseInt(storeId);
             if (!isNaN(numericId) && numericId > 0) {
-                window.location.hash = `/store/${numericId}`;
+                // URLから位置情報を取得して店舗詳細ページのURLに含める
+                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const lat = urlParams.get('lat');
+                const lng = urlParams.get('lng');
+                
+                if (lat && lng) {
+                    window.location.hash = `/store/${numericId}?lat=${lat}&lng=${lng}`;
+                } else {
+                    window.location.hash = `/store/${numericId}`;
+                }
             } else {
                 console.warn('無効な店舗ID:', storeId);
             }
