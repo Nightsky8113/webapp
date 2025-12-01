@@ -16,10 +16,10 @@ export async function structureOCRText(ocrText, storeId) {
     const apiKey = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY;
     
     if (!apiKey) {
-        console.warn('Google Gemini APIキーが設定されていません');
+        console.warn('⚠️ Google Gemini APIキーが設定されていません');
         return {
             success: false,
-            error: 'Google Gemini APIキーが設定されていません。環境変数VITE_GOOGLE_GEMINI_API_KEYを設定してください。'
+            error: 'Google Gemini APIキーが設定されていません。\n環境変数 VITE_GOOGLE_GEMINI_API_KEY を設定してください。\n\n設定方法:\n1. Google AI StudioでAPIキーを取得\n2. .envファイルに VITE_GOOGLE_GEMINI_API_KEY=your-api-key を追加\n3. 開発サーバーを再起動'
         };
     }
 
@@ -67,7 +67,18 @@ export async function structureOCRText(ocrText, storeId) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(`Gemini APIエラー: ${response.status} - ${JSON.stringify(errorData)}`);
+            const errorMessage = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
+            
+            // よくあるエラーの説明を追加
+            if (response.status === 400) {
+                throw new Error(`APIリクエストが無効です: ${errorMessage}`);
+            } else if (response.status === 403) {
+                throw new Error(`APIキーが無効または権限がありません: ${errorMessage}`);
+            } else if (response.status === 429) {
+                throw new Error(`API使用量制限に達しました。しばらく待ってから再試行してください: ${errorMessage}`);
+            } else {
+                throw new Error(`Gemini APIエラー: ${response.status} - ${errorMessage}`);
+            }
         }
 
         const data = await response.json();
@@ -144,17 +155,30 @@ export async function structureOCRText(ocrText, storeId) {
  * @returns {string} プロンプトテキスト
  */
 function createPrompt(ocrText, storeId) {
+    // OCRテキストが長すぎる場合は切り詰める（Gemini APIのトークン制限を考慮）
+    const maxTextLength = 50000; // 安全のため50,000文字に制限
+    const truncatedText = ocrText.length > maxTextLength 
+        ? ocrText.substring(0, maxTextLength) + '\n...（テキストが長いため一部を省略）'
+        : ocrText;
+    
     return `
 あなたはチラシから商品情報を抽出する専門家です。OCRで抽出されたテキストから、商品名、価格、説明などの情報を構造化してJSON形式で返してください。
 
 【OCRテキスト】
-${ocrText.substring(0, 30000)}${ocrText.length > 30000 ? '...' : ''}
+${truncatedText}
 
 【抽出する情報】
-- name: 商品名（必須）
-- price: 価格（数値のみ、必須）
-- description: 商品説明（任意）
-- category: カテゴリ（任意）
+- name: 商品名（必須、文字列）
+- price: 価格（必須、数値のみ、単位（円など）は含めない）
+- description: 商品説明（任意、文字列）
+- category: カテゴリ（任意、文字列）
+
+【重要な注意事項】
+1. 商品名と価格が両方揃っているもののみ抽出してください
+2. 価格は数値のみで、単位（円、¥など）は含めないでください
+3. 不確実な情報や推測した情報は含めないでください
+4. 必ず有効なJSON配列形式で返してください
+5. 商品が見つからない場合は空配列 [] を返してください
 
 【出力形式】
 JSON配列形式で返してください。例:
@@ -173,8 +197,7 @@ JSON配列形式で返してください。例:
   }
 ]
 
-商品名と価格が両方揃っているもののみ抽出してください。不確実な情報は含めないでください。
-必ず有効なJSON形式で返してください。
+必ず有効なJSON形式で返してください。JSON以外のテキストは含めないでください。
 `;
 }
 

@@ -1,7 +1,12 @@
 /**
  * OCR処理統合サービス
- * Google Cloud Vision APIとOpenAI APIを組み合わせて、チラシ画像から商品情報を自動抽出する
+ * Google Cloud Vision APIとGoogle Gemini APIを組み合わせて、チラシ画像から商品情報を自動抽出する
  * コンテスト用途のため、無料枠内で運用する
+ * 
+ * 処理フロー:
+ * 1. Google Cloud Vision APIで画像からテキストを抽出（OCR）
+ * 2. Google Gemini APIで抽出したテキストを商品情報として構造化
+ * 3. 構造化された商品情報をデータベースに保存
  */
 
 import { extractTextFromImage } from './visionService.js';
@@ -31,7 +36,7 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
 
     console.log('テキスト抽出完了:', { textLength: ocrResult.text.length });
 
-    // ステップ2: OpenAI APIでテキストを構造化
+    // ステップ2: Google Gemini APIでテキストを構造化
     console.log('ステップ2: テキスト構造化中...');
     const structureResult = await structureOCRText(ocrResult.text, storeId);
     
@@ -45,16 +50,22 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
     console.log('テキスト構造化完了:', { itemsCount: structureResult.items.length });
 
     // ステップ3: 商品情報をデータベースに保存
-    if (structureResult.items.length > 0 && supabaseInitialized) {
-        console.log('ステップ3: データベースに保存中...');
-        const saveResult = await saveItemsToDatabase(structureResult.items, flyerId, storeId);
-        
-        if (!saveResult.success) {
-            console.warn('データベース保存に失敗しました:', saveResult.error);
-            // 保存失敗しても、抽出した商品情報は返す
+    if (structureResult.items.length > 0) {
+        if (supabaseInitialized) {
+            console.log('ステップ3: データベースに保存中...');
+            const saveResult = await saveItemsToDatabase(structureResult.items, flyerId, storeId);
+            
+            if (!saveResult.success) {
+                console.warn('⚠️ データベース保存に失敗しました:', saveResult.error);
+                // 保存失敗しても、抽出した商品情報は返す
+            } else {
+                console.log('✅ データベース保存完了:', { savedCount: saveResult.savedCount });
+            }
         } else {
-            console.log('データベース保存完了:', { savedCount: saveResult.savedCount });
+            console.warn('⚠️ Supabaseが初期化されていないため、データベースに保存できません');
         }
+    } else {
+        console.warn('⚠️ 抽出された商品情報が0件のため、データベースに保存しません');
     }
 
     // ステップ4: OCR処理完了フラグを更新

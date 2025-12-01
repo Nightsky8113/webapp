@@ -166,20 +166,28 @@ export async function attachAdminUploadPageEvents() {
                             .then(ocrResult => {
                                 if (ocrResult.success) {
                                     const itemsCount = ocrResult.items?.length || 0;
-                                    showStatus(uploadStatus, `✅ OCR処理完了！商品情報を${itemsCount}件抽出しました。`, 'success');
+                                    if (itemsCount > 0) {
+                                        showStatus(uploadStatus, `✅ OCR処理完了！商品情報を${itemsCount}件抽出しました。`, 'success');
+                                    } else {
+                                        showStatus(uploadStatus, `⚠️ OCR処理は完了しましたが、商品情報を抽出できませんでした。`, 'error');
+                                    }
                                     
                                     setTimeout(() => {
                                         if (uploadStatus) {
                                             uploadStatus.classList.add('hidden');
                                         }
-                                    }, 5000);
+                                    }, 8000);
                                 } else {
-                                    showStatus(uploadStatus, `⚠️ OCR処理に失敗しました: ${ocrResult.error}`, 'error');
+                                    // エラーメッセージを改行で分割して表示
+                                    const errorMessage = ocrResult.error || '不明なエラー';
+                                    const errorLines = errorMessage.split('\n');
+                                    const shortError = errorLines[0] + (errorLines.length > 1 ? '...' : '');
+                                    showStatus(uploadStatus, `⚠️ OCR処理に失敗しました: ${shortError}`, 'error');
                                     setTimeout(() => {
                                         if (uploadStatus) {
                                             uploadStatus.classList.add('hidden');
                                         }
-                                    }, 5000);
+                                    }, 10000);
                                 }
                             })
                             .catch(error => {
@@ -189,7 +197,7 @@ export async function attachAdminUploadPageEvents() {
                                     if (uploadStatus) {
                                         uploadStatus.classList.add('hidden');
                                     }
-                                }, 5000);
+                                }, 10000);
                             });
                     } else {
                         setTimeout(() => {

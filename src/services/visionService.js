@@ -28,7 +28,15 @@ export async function extractTextFromImage(imageUrl) {
         }
         
         const imageBlob = await imageResponse.blob();
+        
+        // 画像サイズのチェック（20MB制限）
+        const maxSize = 20 * 1024 * 1024; // 20MB
+        if (imageBlob.size > maxSize) {
+            throw new Error(`画像サイズが大きすぎます（${(imageBlob.size / 1024 / 1024).toFixed(2)}MB）。20MB以下にしてください。`);
+        }
+        
         const imageBase64 = await blobToBase64(imageBlob);
+        const base64Content = imageBase64.split(',')[1]; // data:image/...;base64, の部分を除去
 
         // Google Cloud Vision APIにリクエストを送信
         const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
@@ -37,14 +45,17 @@ export async function extractTextFromImage(imageUrl) {
             requests: [
                 {
                     image: {
-                        content: imageBase64.split(',')[1] // data:image/...;base64, の部分を除去
+                        content: base64Content
                     },
                     features: [
                         {
                             type: 'TEXT_DETECTION',
                             maxResults: 1
                         }
-                    ]
+                    ],
+                    imageContext: {
+                        languageHints: ['ja'] // 日本語を優先
+                    }
                 }
             ]
         };
@@ -61,7 +72,18 @@ export async function extractTextFromImage(imageUrl) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(`Vision APIエラー: ${response.status} - ${JSON.stringify(errorData)}`);
+            const errorMessage = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
+            
+            // よくあるエラーの説明を追加
+            if (response.status === 400) {
+                throw new Error(`APIリクエストが無効です: ${errorMessage}`);
+            } else if (response.status === 403) {
+                throw new Error(`APIキーが無効または権限がありません: ${errorMessage}`);
+            } else if (response.status === 429) {
+                throw new Error(`API使用量制限に達しました。しばらく待ってから再試行してください: ${errorMessage}`);
+            } else {
+                throw new Error(`Vision APIエラー: ${response.status} - ${errorMessage}`);
+            }
         }
 
         const data = await response.json();
