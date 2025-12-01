@@ -36,6 +36,15 @@ export function initMap(containerId, lat, lng, zoom = 15) {
         return null;
     }
 
+    // 地図コンテナのサイズが0の場合は、少し待ってから再試行
+    if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
+        console.warn(`地図コンテナのサイズが0です。再試行します: ${containerId}`);
+        setTimeout(() => {
+            initMap(containerId, lat, lng, zoom);
+        }, 200);
+        return null;
+    }
+
     mapInstance = L.map(containerId).setView([lat, lng], zoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

@@ -32,18 +32,39 @@
 
 /* 検索オプションカード（HomePage用） */
 .search-option-card {
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
   cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 3px solid;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-option-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
 .search-option-card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px) scale(1.02);
+}
+
+.search-option-card:hover::before {
+  left: 100%;
+}
+
+.search-option-card:active {
+  transform: translateY(-4px) scale(1.01);
 }
 
 .search-option-card.product {
@@ -67,9 +88,16 @@
 }
 
 .search-option-card .card-icon {
-  font-size: 3.75rem;
+  font-size: 4.5rem;
   line-height: 1;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.search-option-card:hover .card-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .search-option-card .card-title {
@@ -102,25 +130,61 @@
 }
 
 .search-option-card .card-action {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  margin-top: 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.25);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.search-option-card:hover .card-action {
+  background-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateX(4px);
 }
 
 .search-option-card .card-action .arrow {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   line-height: 1.75rem;
+  transition: transform 0.3s ease;
+}
+
+.search-option-card:hover .card-action .arrow {
+  transform: translateX(4px);
 }
 
 /* セクション見出し */
 .section-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   color: #1f2937;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-bottom: 0.75rem;
+  display: inline-block;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 2px;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 2rem;
+  }
 }
 
 /* 空状態メッセージ */
@@ -164,22 +228,45 @@
 
 /* 情報ボックス */
 .info-box {
-  border-left-width: 4px;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  border-left-width: 5px;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.75rem;
   font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.info-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: currentColor;
+  opacity: 0.2;
 }
 
 .info-box.blue {
-  background-color: #eff6ff;
+  background: linear-gradient(to right, #eff6ff 0%, #dbeafe 100%);
   border-color: #3b82f6;
   color: #1e40af;
 }
 
 .info-box.green {
-  background-color: #f0fdf4;
+  background: linear-gradient(to right, #f0fdf4 0%, #dcfce7 100%);
   border-color: #10b981;
   color: #065f46;
+}
+
+.info-box p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* 検索入力 */
@@ -201,22 +288,7 @@
   border-color: #3b82f6;
 }
 
-.btn-search {
-  background-color: #3b82f6;
-  color: white;
-  padding: 0.5rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: none;
-  cursor: pointer;
-}
-
-.btn-search:hover {
-  background-color: #2563eb;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
+/* .btn-search は components.css で定義されています */
 
 /* 店舗詳細ページ */
 .store-detail-card {
@@ -401,22 +473,28 @@
 
 .genre-stores-map {
   height: 60vh;
+  min-height: 400px;
   width: 100%;
   margin-bottom: 24px;
   border-radius: 0.75rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   border: 2px solid #e5e7eb;
+  position: relative;
+  z-index: 1;
 }
 
 .map-container {
   height: 400px;
+  min-height: 400px;
   width: 100%;
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.5rem;
   border: 2px solid #e5e7eb;
+  position: relative;
+  z-index: 1;
 }
 
 .genre-stores-list-section {
@@ -438,18 +516,40 @@
 
 .genre-store-item {
   background-color: white;
-  border-radius: 0.5rem;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.genre-store-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.05), transparent);
+  transition: left 0.5s;
 }
 
 .genre-store-item:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15), 0 4px 8px rgba(59, 130, 246, 0.1);
   border-color: #3b82f6;
+  transform: translateY(-4px);
+  background-color: #f8fafc;
+}
+
+.genre-store-item:hover::before {
+  left: 100%;
+}
+
+.genre-store-item:active {
   transform: translateY(-2px);
 }
 

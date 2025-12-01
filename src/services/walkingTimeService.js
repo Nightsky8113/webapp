@@ -69,11 +69,23 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
         return null;
     }
     
+    // 外部APIから取得した店舗（文字列ID）の場合は処理をスキップ
+    if (typeof storeId === 'string' && (storeId.startsWith('overpass_') || storeId.startsWith('api_'))) {
+        return null;
+    }
+    
+    // 店舗IDが整数でない場合はエラー
+    const numericId = parseInt(storeId);
+    if (isNaN(numericId)) {
+        console.warn(`無効な店舗ID: ${storeId}`);
+        return null;
+    }
+    
     // 店舗情報を取得
     const { data: store, error: storeError } = await supabase
         .from('stores')
         .select('summary_walk_minutes, nearest_station_lat, nearest_station_lng, latitude, longitude')
-        .eq('id', storeId)
+        .eq('id', numericId)
         .single();
     
     if (storeError || !store) {
@@ -163,5 +175,6 @@ export async function batchUpdateWalkingTimes(storeIds) {
     
     return results;
 }
+
 
 

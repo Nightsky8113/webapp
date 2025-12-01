@@ -157,3 +157,4 @@ supabase db push
 - [AGGREGATION_IMPLEMENTATION.md](./AGGREGATION_IMPLEMENTATION.md) - 集計処理の実装詳細
 
 
+

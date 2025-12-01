@@ -13,14 +13,16 @@ export async function StoreCard(store, flyer, distance) {
     const storeName = escapeHtml(store.name);
     const itemName = store.summary_best_item_name ? escapeHtml(store.summary_best_item_name) : null;
     const itemPrice = store.summary_best_item_price ? formatPrice(store.summary_best_item_price) : null;
-    const thumbnailUrl = flyer?.thumbnail_url || 'https://via.placeholder.com/400x300?text=No+Image';
+    // プレースホルダー画像の代わりに、データURIを使用（ネットワークエラーを防ぐ）
+    const thumbnailUrl = flyer?.thumbnail_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
     const imageUrl = flyer?.image_url || thumbnailUrl;
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
     const station = escapeHtml(store.nearest_station || '');
     const isFromAPI = store.is_from_api || false;
     
     // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
-    const walkMinutes = await getWalkingTime(store.id);
+    // 外部APIから取得した店舗はデータベースに存在しないため、徒歩時間を取得しない
+    const walkMinutes = isFromAPI ? null : await getWalkingTime(store.id);
 
     const templateData = {
         id: store.id,

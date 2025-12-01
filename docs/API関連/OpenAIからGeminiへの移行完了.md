@@ -175,3 +175,4 @@ https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generat
 **ステータス**: ✅ 移行完了（Gemini APIキーの設定が必要）
 
 
+
