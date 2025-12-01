@@ -51,7 +51,7 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
             way["shop"="supermarket"](around:${radius},${lat},${lng});
             relation["shop"="supermarket"](around:${radius},${lat},${lng});
         );
-        out center;
+        out center tags;
     `;
 
     try {
@@ -79,14 +79,55 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
 
             const distance = calculateDistance(lat, lng, latitude, longitude);
 
+            // 住所を組み立て（優先順位: addr:full > 組み立てた住所 > addr:street > addr:city）
+            let address = '';
+            if (element.tags?.['addr:full']) {
+                // 完全な住所が存在する場合
+                address = element.tags['addr:full'];
+            } else {
+                // 複数のタグを組み合わせて住所を構築
+                const addressParts = [];
+                if (element.tags?.['addr:postcode']) {
+                    addressParts.push(`〒${element.tags['addr:postcode']}`);
+                }
+                if (element.tags?.['addr:prefecture']) {
+                    addressParts.push(element.tags['addr:prefecture']);
+                }
+                if (element.tags?.['addr:city']) {
+                    addressParts.push(element.tags['addr:city']);
+                }
+                if (element.tags?.['addr:suburb'] || element.tags?.['addr:neighbourhood']) {
+                    addressParts.push(element.tags['addr:suburb'] || element.tags['addr:neighbourhood']);
+                }
+                if (element.tags?.['addr:quarter'] || element.tags?.['addr:block_number']) {
+                    addressParts.push(element.tags['addr:quarter'] || element.tags['addr:block_number']);
+                }
+                if (element.tags?.['addr:street']) {
+                    addressParts.push(element.tags['addr:street']);
+                }
+                if (element.tags?.['addr:housenumber']) {
+                    addressParts.push(element.tags['addr:housenumber']);
+                }
+                if (element.tags?.['addr:housename']) {
+                    addressParts.push(element.tags['addr:housename']);
+                }
+                
+                if (addressParts.length > 0) {
+                    address = addressParts.join(' ');
+                } else {
+                    // 組み立てられない場合は個別タグを試す
+                    address = element.tags?.['addr:street'] || 
+                             element.tags?.['addr:city'] || 
+                             '';
+                }
+            }
+
             stores.push({
                 id: `overpass_${element.id}`,
                 name: element.tags?.name || '名前なしスーパー',
                 latitude: latitude,
                 longitude: longitude,
-                address: element.tags?.['addr:full'] || 
-                         element.tags?.['addr:street'] || 
-                         element.tags?.['addr:city'] || '',
+                address: address,
                 distance: distance,
                 is_from_api: true,
                 api_provider: 'overpass',
