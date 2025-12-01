@@ -1,4 +1,4 @@
-import { getStores, getFlyers } from '../services/dataService.js';
+import { getStores, getFlyers, addStoreIfNotExists } from '../services/dataService.js';
 import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
@@ -46,32 +46,28 @@ export async function StoresPage(userLocation) {
         // エラーが発生してもデータベースの店舗は表示する
     }
 
-    // データベースの店舗とAPI検索結果を統合
-    // 重複を排除（同じ位置の店舗は除外）
-    const allStores = [...stores];
-    
-    apiStores.forEach(apiStore => {
-        const isDuplicate = stores.some(dbStore => {
-            // 同じ位置（±100m以内）の店舗は重複とみなす
-            const latDiff = Math.abs(dbStore.latitude - apiStore.latitude);
-            const lngDiff = Math.abs(dbStore.longitude - apiStore.longitude);
-            return latDiff < 0.001 && lngDiff < 0.001;
+    // APIから取得した店舗をデータベースに追加（存在しない場合のみ）
+    const storesToAdd = [];
+    for (const apiStore of apiStores) {
+        const result = await addStoreIfNotExists({
+            name: apiStore.name,
+            latitude: apiStore.latitude,
+            longitude: apiStore.longitude,
+            address: apiStore.address || ''
         });
         
-        if (!isDuplicate) {
-            // データベースの店舗と形式を統一
-            allStores.push({
-                ...apiStore,
-                // データベースの店舗と互換性を持たせる
-                id: apiStore.id || `api_${apiStore.latitude}_${apiStore.longitude}`,
-                name: apiStore.name,
-                latitude: apiStore.latitude,
-                longitude: apiStore.longitude,
-                address: apiStore.address || '',
-                is_from_api: true
-            });
+        if (result.success && result.store) {
+            storesToAdd.push(result.store);
+        } else if (result.success && !result.isNew) {
+            // 既存の店舗も追加リストに含める
+            storesToAdd.push(result.store);
+        } else {
+            console.warn('店舗追加に失敗しました:', result.error);
         }
-    });
+    }
+
+    // データベースの店舗を再取得（追加された店舗を含む）
+    const allStores = await getStores(true);
 
     // 距離順にソート（最大6件）
     const storesWithDistance = sortByDistance(allStores, userLocation).slice(0, 6);

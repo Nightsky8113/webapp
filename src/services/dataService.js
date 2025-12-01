@@ -388,6 +388,105 @@ export async function createFlyer(flyerData) {
 }
 
 /**
+ * 店舗がデータベースに存在するかチェックし、存在しない場合は追加する
+ * 位置情報（±100m以内）で重複チェックを行う
+ * @param {Object} storeData - 店舗データ
+ * @param {string} storeData.name - 店舗名（必須）
+ * @param {number} storeData.latitude - 緯度（必須）
+ * @param {number} storeData.longitude - 経度（必須）
+ * @param {string} storeData.address - 住所（任意）
+ * @returns {Promise<Object>} {success: boolean, store?: Object, isNew?: boolean, error?: string}
+ */
+export async function addStoreIfNotExists(storeData) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。環境変数を確認してください。'
+        };
+    }
+
+    const { name, latitude, longitude, address } = storeData;
+
+    if (!name || latitude === undefined || longitude === undefined) {
+        return {
+            success: false,
+            error: '店舗名、緯度、経度は必須です。'
+        };
+    }
+
+    try {
+        // 既存の店舗を取得（キャッシュを無視して最新データを取得）
+        const existingStores = await getStores(true);
+
+        // 同じ位置（±100m以内）の店舗が存在するかチェック
+        const isDuplicate = existingStores.some(dbStore => {
+            const latDiff = Math.abs(dbStore.latitude - latitude);
+            const lngDiff = Math.abs(dbStore.longitude - longitude);
+            return latDiff < 0.001 && lngDiff < 0.001;
+        });
+
+        if (isDuplicate) {
+            // 既存の店舗を返す
+            const existingStore = existingStores.find(dbStore => {
+                const latDiff = Math.abs(dbStore.latitude - latitude);
+                const lngDiff = Math.abs(dbStore.longitude - longitude);
+                return latDiff < 0.001 && lngDiff < 0.001;
+            });
+            return {
+                success: true,
+                store: existingStore,
+                isNew: false
+            };
+        }
+
+        // 新しい店舗を追加
+        const insertData = {
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+            address: address || null,
+            nearest_station: null,
+            nearest_station_lat: null,
+            nearest_station_lng: null,
+            summary_walk_minutes: null,
+            summary_best_item_name: null,
+            summary_best_item_price: null,
+            summary_best_item_id: null
+        };
+
+        const { data, error } = await supabase
+            .from('stores')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('店舗追加エラー:', error);
+            return {
+                success: false,
+                error: `店舗の追加に失敗しました: ${error.message}`
+            };
+        }
+
+        // キャッシュをクリアして最新データを取得できるようにする
+        clearCache();
+
+        console.log('店舗追加成功:', data);
+        return {
+            success: true,
+            store: data,
+            isNew: true
+        };
+    } catch (error) {
+        console.error('店舗追加エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
+}
+
+/**
  * 既存のチラシレコードを更新する
  * updated_atは自動的に現在の日時に更新される
  * @param {number} flyerId - 更新するチラシのID

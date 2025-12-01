@@ -105,6 +105,9 @@ export async function attachAdminUploadPageEvents() {
         });
     }
 
+    // 店舗検索・予測変換機能の初期化
+    await initStoreSearch();
+
     const fileInput = document.getElementById('file-input');
     const uploadForm = document.getElementById('upload-form');
     const previewArea = document.getElementById('preview-area');
@@ -133,6 +136,11 @@ export async function attachAdminUploadPageEvents() {
             }
 
             const storeId = parseInt(storeSelect.value);
+            
+            if (!storeId) {
+                showStatus(uploadStatus, 'エラー: 店舗を選択してください。', 'error');
+                return;
+            }
             const file = fileInput.files[0];
 
             if (!storeId) {
