@@ -3,6 +3,71 @@
  * 各ページのスタイルを定義
  */
 
+/* 店舗検索・予測変換 */
+.store-search-container {
+  position: relative;
+}
+
+.store-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.store-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.store-select-hidden {
+  display: none;
+}
+
+.store-autocomplete {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.store-suggestion {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.store-suggestion:last-child {
+  border-bottom: none;
+}
+
+.store-suggestion:hover {
+  background-color: #f3f4f6;
+}
+
+.store-suggestion-name {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.store-suggestion-address {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
 /* ヒーローセクション */
 .hero-section {
   background: linear-gradient(to right, #3b82f6, #2563eb);
