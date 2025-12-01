@@ -432,10 +432,46 @@ export async function addStoreIfNotExists(storeData) {
                 const lngDiff = Math.abs(dbStore.longitude - longitude);
                 return latDiff < 0.001 && lngDiff < 0.001;
             });
+            
+            // 既存店舗の住所がNULLで、新しい住所が取得できている場合は住所を更新
+            if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && address && address.trim() !== '') {
+                console.log(`店舗「${existingStore.name}」の住所を更新します: ${address}`);
+                
+                const { data: updatedStore, error: updateError } = await supabase
+                    .from('stores')
+                    .update({ address: address.trim() })
+                    .eq('id', existingStore.id)
+                    .select()
+                    .single();
+                
+                if (updateError) {
+                    console.error('住所更新エラー:', updateError);
+                    // 更新に失敗しても既存の店舗情報を返す
+                    return {
+                        success: true,
+                        store: existingStore,
+                        isNew: false,
+                        addressUpdated: false
+                    };
+                }
+                
+                // キャッシュをクリアして最新データを取得できるようにする
+                clearCache();
+                
+                console.log('住所更新成功:', updatedStore);
+                return {
+                    success: true,
+                    store: updatedStore,
+                    isNew: false,
+                    addressUpdated: true
+                };
+            }
+            
             return {
                 success: true,
                 store: existingStore,
-                isNew: false
+                isNew: false,
+                addressUpdated: false
             };
         }
 
