@@ -96,8 +96,9 @@ export async function StoresPage(userLocation) {
     const storesWithDistance = sortByDistance(allStores, userLocation).slice(0, 6);
 
     const storesHTMLPromises = storesWithDistance.map(async store => {
-        // APIから取得した店舗にはチラシ情報がない
-        const flyer = store.is_from_api ? null : flyers.find(f => f.store_id === store.id && f.is_latest);
+        // APIから取得した店舗（is_from_apiフラグがある、またはIDが文字列でoverpass_で始まる）にはチラシ情報がない
+        const isFromAPI = store.is_from_api || (typeof store.id === 'string' && (store.id.startsWith('overpass_') || store.id.startsWith('api_')));
+        const flyer = isFromAPI ? null : flyers.find(f => f.store_id === store.id && f.is_latest);
         return await StoreCard(store, flyer, store.distance);
     });
     const storesHTML = (await Promise.all(storesHTMLPromises)).join('');
