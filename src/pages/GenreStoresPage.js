@@ -235,7 +235,16 @@ export async function attachGenreStoresPageEvents() {
             const storeItem = e.target.closest('.genre-store-item');
             if (storeItem) {
                 const storeId = parseInt(storeItem.dataset.storeId);
-                window.location.hash = `/store/${storeId}`;
+                // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
+                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const lat = urlParams.get('lat');
+                const lng = urlParams.get('lng');
+                
+                if (lat && lng) {
+                    window.location.hash = `/store/${storeId}?lat=${lat}&lng=${lng}`;
+                } else {
+                    window.location.hash = `/store/${storeId}`;
+                }
             }
         });
     }
