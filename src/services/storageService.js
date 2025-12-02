@@ -70,7 +70,6 @@ export async function uploadFlyerImage(file, storeId, options = {}) {
             await deleteImage(options.oldPath);
         }
 
-        console.log('画像をアップロード中...', { filePath, storeId });
         const { data, error } = await supabase.storage
             .from(BUCKET_NAME)
             .upload(filePath, file, {

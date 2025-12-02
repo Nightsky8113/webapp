@@ -1,6 +1,6 @@
 import { getStoresByGenreId, getGenreById, getFlyers, getItemsByGenreId } from '../services/dataService.js';
 import { filterByDistance, sortByDistance } from '../utils/distance.js';
-import { escapeHtml, formatPrice } from '../utils/helpers.js';
+import { escapeHtml, formatPrice, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { initMap, addStoreMarker, clearMarkers, fitBounds } from '../utils/map.js';
 
@@ -176,7 +176,7 @@ export async function attachGenreStoresPageEvents() {
     setTimeout(async () => {
         const mapContainer = document.getElementById('genre-stores-map');
         if (mapContainer) {
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             const lat = parseFloat(urlParams.get('lat'));
             const lng = parseFloat(urlParams.get('lng'));
 
@@ -236,7 +236,7 @@ export async function attachGenreStoresPageEvents() {
             if (storeItem) {
                 const storeId = parseInt(storeItem.dataset.storeId);
                 // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
-                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const urlParams = getQueryParamsFromHash();
                 const lat = urlParams.get('lat');
                 const lng = urlParams.get('lng');
                 

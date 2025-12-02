@@ -5,6 +5,7 @@
  */
 
 import { searchNearbyStores as searchWithOverpassAPI } from './overpassApi.js';
+import { STORE_SEARCH_RADIUS } from '../utils/constants.js';
 
 const API_PROVIDER = import.meta.env.VITE_STORE_SEARCH_API || 'overpass';
 
@@ -12,7 +13,7 @@ const API_PROVIDER = import.meta.env.VITE_STORE_SEARCH_API || 'overpass';
  * 環境変数で指定されたAPIプロバイダーを使用して近くの店舗を検索する
  * 現在はOverpass APIのみ対応、将来的にGoogle Places APIにも対応予定
  */
-export async function searchNearbyStores(lat, lng, radius = 2000) {
+export async function searchNearbyStores(lat, lng, radius = STORE_SEARCH_RADIUS) {
     switch (API_PROVIDER) {
         case 'places':
             console.warn('Google Places APIはまだ実装されていません。Overpass APIを使用します。');

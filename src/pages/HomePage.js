@@ -1,6 +1,7 @@
 import { getFlyers, getTodayFlyers } from '../services/dataService.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { getQueryParamsFromHash } from '../utils/helpers.js';
 
 /**
  * ホームページのコンテンツを生成する
@@ -123,7 +124,7 @@ export function attachHomePageEvents() {
     if (todayContainer) {
         attachStoreCardEvents(todayContainer, async (storeId) => {
             // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
             

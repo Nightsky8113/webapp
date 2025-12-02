@@ -470,9 +470,7 @@ export async function createFlyer(flyerData) {
 
             // ステップ3: 既にis_latest = falseになっている古いチラシの商品も削除（クリーンアップ）
             const cleanupResult = await deleteItemsByOldFlyers(parseInt(store_id));
-            if (cleanupResult.success && cleanupResult.deletedCount > 0) {
-                console.log(`✅ 古いチラシの商品情報を削除しました（${cleanupResult.deletedCount}件のチラシを処理）`);
-            }
+            // 古いチラシの商品情報を削除（ログは出力しない）
         }
 
         const insertData = {

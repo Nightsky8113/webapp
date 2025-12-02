@@ -3,6 +3,8 @@ import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { searchNearbyStores } from '../services/storeSearchService.js';
+import { STORE_SEARCH_RADIUS, DB_REFLECTION_DELAY, TIMEOUT_SHORT, TIMEOUT_MEDIUM } from '../utils/constants.js';
+import { getQueryParamsFromHash } from '../utils/helpers.js';
 
 /**
  * データベースの店舗とAPIから取得した店舗を統合する共通関数
@@ -45,7 +47,7 @@ async function mergeStoresFromDBAndAPI(userLocation, dbStores, apiStores) {
 
     // データベースへの追加処理が完了するまで少し待機（データベースの反映を待つ）
     if (addResults.some(r => r.success)) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, DB_REFLECTION_DELAY));
     }
 
     // データベースの店舗を再取得（追加された店舗を含む）
@@ -109,9 +111,8 @@ export async function StoresPage(userLocation) {
         apiStores = await searchNearbyStores(
             userLocation.lat,
             userLocation.lng,
-            2000 // 2km以内
+            STORE_SEARCH_RADIUS
         );
-        console.log(`✅ APIから${apiStores.length}件の店舗を取得しました`);
     } catch (error) {
         console.error('❌ 店舗検索エラー:', error);
         console.error('エラー詳細:', {
@@ -216,7 +217,7 @@ export async function attachStoresPageEvents() {
                 const numericId = parseInt(storeIdStr, 10);
                 if (!isNaN(numericId) && numericId > 0) {
                     // URLから位置情報を取得して店舗詳細ページのURLに含める
-                    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                    const urlParams = getQueryParamsFromHash();
                     const lat = urlParams.get('lat');
                     const lng = urlParams.get('lng');
                     
@@ -232,20 +233,20 @@ export async function attachStoresPageEvents() {
             // リトライ
             if (retryCount < maxRetries) {
                 retryCount++;
-                setTimeout(checkAndAttachEvents, 200);
+                setTimeout(checkAndAttachEvents, TIMEOUT_MEDIUM);
             }
         }
     };
     
     // 初回実行
-    setTimeout(checkAndAttachEvents, 100);
+    setTimeout(checkAndAttachEvents, TIMEOUT_SHORT);
 
     // DOM描画完了後に地図を初期化し、店舗マーカーを表示する
     setTimeout(async () => {
         const mapContainer = document.getElementById('stores-map');
         if (mapContainer) {
             // URLパラメータから位置情報を取得
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             const lat = parseFloat(urlParams.get('lat'));
             const lng = parseFloat(urlParams.get('lng'));
 
@@ -265,7 +266,7 @@ export async function attachStoresPageEvents() {
                 // APIから近くのスーパーマーケットを検索
                 let apiStores = [];
                 try {
-                    apiStores = await searchNearbyStores(lat, lng, 2000);
+                    apiStores = await searchNearbyStores(lat, lng, STORE_SEARCH_RADIUS);
                 } catch (error) {
                     console.error('地図表示時の店舗検索エラー:', error);
                 }
@@ -302,5 +303,5 @@ export async function attachStoresPageEvents() {
                 fitBounds(userLocation);
             }
         }
-    }, 100);
+    }, TIMEOUT_SHORT);
 }

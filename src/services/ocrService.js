@@ -50,8 +50,6 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
             if (!saveResult.success) {
                 console.warn('データベース保存に失敗しました:', saveResult.error);
                 // 保存失敗しても、抽出した商品情報は返す
-            } else {
-                console.log(`✅ ${saveResult.savedCount}件の商品情報をデータベースに保存しました`);
             }
         } else {
             console.warn('⚠️ Supabaseが初期化されていません。商品情報は抽出されましたが、データベースには保存されませんでした。');

@@ -2,7 +2,7 @@ import { getStores, getFlyers, getItems } from '../services/dataService.js';
 import { searchItems, filterByPrice, sortByPrice } from '../utils/search.js';
 import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
-import { escapeHtml } from '../utils/helpers.js';
+import { escapeHtml, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
@@ -203,7 +203,7 @@ export function attachSearchResultsPageEvents(query) {
             const storeId = button.getAttribute('data-store-id');
             if (storeId) {
                 // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
-                const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+                const urlParams = getQueryParamsFromHash();
                 const lat = urlParams.get('lat');
                 const lng = urlParams.get('lng');
                 

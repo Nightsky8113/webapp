@@ -1,7 +1,18 @@
 import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId } from '../services/dataService.js';
-import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
+import { escapeHtml, formatPrice, formatDate, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
+import { 
+    MAX_RETRIES, 
+    RETRY_DELAY, 
+    MAP_HEIGHT, 
+    MAP_ZOOM_DEFAULT, 
+    MAP_ZOOM_MAX, 
+    MAP_BOUNDS_PADDING,
+    TIMEOUT_LONG,
+    TIMEOUT_VERY_LONG,
+    TIMEOUT_MEDIUM
+} from '../utils/constants.js';
 
 /**
  * 指定された店舗の詳細情報ページのコンテンツを生成する
@@ -186,12 +197,12 @@ export async function attachStoreDetailPageEvents() {
 
     // 地図を初期化（DOMのレンダリングを待つ）
     const initStoreMap = async () => {
-        // 地図コンテナが見つかるまで待つ（最大5秒）
+        // 地図コンテナが見つかるまで待つ
         let mapContainer = null;
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < MAX_RETRIES; i++) {
             mapContainer = document.getElementById('store-detail-map');
             if (mapContainer) break;
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         }
         
         if (!mapContainer) {
@@ -216,14 +227,14 @@ export async function attachStoreDetailPageEvents() {
             }
 
             // URLパラメータから位置情報を取得
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             const userLat = urlParams.get('lat') ? parseFloat(urlParams.get('lat')) : null;
             const userLng = urlParams.get('lng') ? parseFloat(urlParams.get('lng')) : null;
 
-            // Leafletが読み込まれるまで待つ（最大5秒）
-            for (let i = 0; i < 50; i++) {
+            // Leafletが読み込まれるまで待つ
+            for (let i = 0; i < MAX_RETRIES; i++) {
                 if (typeof L !== 'undefined') break;
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
             }
 
             if (typeof L === 'undefined') {
@@ -239,8 +250,8 @@ export async function attachStoreDetailPageEvents() {
 
             // 地図コンテナのサイズを明示的に設定
             mapContainer.style.width = '100%';
-            mapContainer.style.height = '384px';
-            mapContainer.style.minHeight = '384px';
+            mapContainer.style.height = `${MAP_HEIGHT}px`;
+            mapContainer.style.minHeight = `${MAP_HEIGHT}px`;
             mapContainer.style.display = 'block';
             mapContainer.style.position = 'relative';
             
@@ -257,15 +268,15 @@ export async function attachStoreDetailPageEvents() {
             }
             
             // サイズ設定後、少し待ってから地図を初期化
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, TIMEOUT_LONG));
             
             // 地図を直接初期化
-            const map = L.map('store-detail-map').setView([store.latitude, store.longitude], 15);
+            const map = L.map('store-detail-map').setView([store.latitude, store.longitude], MAP_ZOOM_DEFAULT);
             window.storeDetailMapInstance = map; // グローバルに保存して後で削除できるようにする
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
+                maxZoom: MAP_ZOOM_MAX
             }).addTo(map);
 
             // 地図のサイズを再計算（DOMが完全にレンダリングされた後）
@@ -273,8 +284,8 @@ export async function attachStoreDetailPageEvents() {
                 map.invalidateSize();
                 setTimeout(() => {
                     map.invalidateSize();
-                }, 200);
-            }, 300);
+                }, TIMEOUT_MEDIUM);
+            }, TIMEOUT_LONG);
 
             // 店舗マーカーを追加
             const storeMarker = L.marker([store.latitude, store.longitude])
@@ -292,15 +303,15 @@ export async function attachStoreDetailPageEvents() {
                     const bounds = L.latLngBounds(
                         [[store.latitude, store.longitude], [userLat, userLng]]
                     );
-                    map.fitBounds(bounds, { padding: [50, 50] });
+                    map.fitBounds(bounds, { padding: [MAP_BOUNDS_PADDING, MAP_BOUNDS_PADDING] });
                     storeMarker.openPopup();
-                }, 500);
+                }, TIMEOUT_VERY_LONG);
             } else {
                 // 位置情報がない場合、店舗を中心に表示
                 setTimeout(() => {
-                    map.setView([store.latitude, store.longitude], 15);
+                    map.setView([store.latitude, store.longitude], MAP_ZOOM_DEFAULT);
                     storeMarker.openPopup();
-                }, 500);
+                }, TIMEOUT_VERY_LONG);
             }
         } catch (error) {
             console.error('地図の初期化エラー:', error);
@@ -308,5 +319,5 @@ export async function attachStoreDetailPageEvents() {
     };
 
     // 地図の初期化を開始
-    setTimeout(initStoreMap, 200);
+    setTimeout(initStoreMap, TIMEOUT_MEDIUM);
 }

@@ -1,6 +1,7 @@
 import { getGenres } from '../services/dataService.js';
 import { GenreCard, attachGenreCardEvents } from '../components/GenreCard.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { getQueryParamsFromHash } from '../utils/helpers.js';
 
 /**
  * ジャンル選択ページのコンテンツを生成する
@@ -79,7 +80,7 @@ export function attachGenrePageEvents() {
         }
 
         try {
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
             
@@ -118,7 +119,7 @@ export function attachGenrePageEvents() {
     const genresContainer = document.getElementById('genres-container');
     if (genresContainer) {
         attachGenreCardEvents(genresContainer, async (genreId) => {
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
             
