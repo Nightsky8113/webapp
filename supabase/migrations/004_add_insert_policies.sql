@@ -16,3 +16,4 @@ CREATE POLICY "Public update access" ON stores FOR UPDATE USING (true) WITH CHEC
 -- flyersテーブルにUPDATE権限を追加（チラシ情報の更新に必要）
 CREATE POLICY "Public update access" ON flyers FOR UPDATE USING (true) WITH CHECK (true);
 
+

@@ -303,8 +303,111 @@ export function clearCache() {
 }
 
 /**
+ * 指定されたチラシIDに関連する商品情報を削除する
+ * @param {number} flyerId - チラシID
+ * @returns {Promise<Object>} {success: boolean, error?: string}
+ */
+async function deleteItemsByFlyerId(flyerId) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        const { error } = await supabase
+            .from('items')
+            .delete()
+            .eq('flyer_id', flyerId);
+
+        if (error) {
+            console.error(`チラシID ${flyerId} の商品削除エラー:`, error);
+            return {
+                success: false,
+                error: `商品情報の削除に失敗しました: ${error.message}`
+            };
+        }
+
+        return {
+            success: true
+        };
+    } catch (error) {
+        console.error('商品情報の削除エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
+}
+
+/**
+ * 指定された店舗の古いチラシ（is_latest = false）に関連する商品情報を削除する
+ * 新しいチラシがアップロードされた際に、古い商品情報をクリーンアップするために使用
+ * @param {number} storeId - 店舗ID
+ * @returns {Promise<Object>} {success: boolean, deletedCount?: number, error?: string}
+ */
+async function deleteItemsByOldFlyers(storeId) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        // 指定された店舗の古いチラシ（is_latest = false）のIDを取得
+        const { data: oldFlyers, error: flyersError } = await supabase
+            .from('flyers')
+            .select('id')
+            .eq('store_id', parseInt(storeId))
+            .eq('is_latest', false);
+
+        if (flyersError) {
+            console.error('古いチラシ取得エラー:', flyersError);
+            return {
+                success: false,
+                error: `古いチラシの取得に失敗しました: ${flyersError.message}`
+            };
+        }
+
+        // 古いチラシが存在しない場合は削除する商品もない
+        if (!oldFlyers || oldFlyers.length === 0) {
+            return {
+                success: true,
+                deletedCount: 0
+            };
+        }
+
+        // 古いチラシに関連する商品を削除
+        let deletedCount = 0;
+        for (const flyer of oldFlyers) {
+            const result = await deleteItemsByFlyerId(flyer.id);
+            if (result.success) {
+                deletedCount++;
+            }
+        }
+
+        // キャッシュをクリアして最新データを取得できるようにする
+        clearCache();
+
+        return {
+            success: true,
+            deletedCount: deletedCount
+        };
+    } catch (error) {
+        console.error('古い商品情報の削除エラー:', error);
+        return {
+            success: false,
+            error: `商品情報の削除に失敗しました: ${error.message}`
+        };
+    }
+}
+
+/**
  * 新しいチラシレコードをデータベースに作成する
  * 新規チラシがis_latest=trueの場合、同じ店舗の既存チラシのis_latestをfalseに更新して一貫性を保つ
+ * また、古いチラシ（is_latest = false）に関連する商品情報を削除してデータをクリーンアップする
  * @param {Object} flyerData - チラシデータ
  * @param {number} flyerData.store_id - 店舗ID
  * @param {string} flyerData.image_url - 画像URL
@@ -340,6 +443,21 @@ export async function createFlyer(flyerData) {
         // 新規チラシを最新とする場合、同じ店舗の既存チラシのis_latestフラグをfalseに更新
         // これにより、1店舗あたり最新のチラシは1件のみとなる
         if (is_latest) {
+            // ステップ1: 既存の最新チラシ（is_latest = true）のIDを取得して、その商品を削除
+            const { data: currentLatestFlyers, error: fetchError } = await supabase
+                .from('flyers')
+                .select('id')
+                .eq('store_id', parseInt(store_id))
+                .eq('is_latest', true);
+
+            if (!fetchError && currentLatestFlyers && currentLatestFlyers.length > 0) {
+                // 既存の最新チラシの商品を削除
+                for (const flyer of currentLatestFlyers) {
+                    await deleteItemsByFlyerId(flyer.id);
+                }
+            }
+
+            // ステップ2: 既存チラシのis_latestフラグをfalseに更新
             const { error: updateError } = await supabase
                 .from('flyers')
                 .update({ is_latest: false })
@@ -348,6 +466,12 @@ export async function createFlyer(flyerData) {
 
             if (updateError) {
                 console.error('既存チラシの更新エラー:', updateError);
+            }
+
+            // ステップ3: 既にis_latest = falseになっている古いチラシの商品も削除（クリーンアップ）
+            const cleanupResult = await deleteItemsByOldFlyers(parseInt(store_id));
+            if (cleanupResult.success && cleanupResult.deletedCount > 0) {
+                console.log(`✅ 古いチラシの商品情報を削除しました（${cleanupResult.deletedCount}件のチラシを処理）`);
             }
         }
 
