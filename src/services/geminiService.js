@@ -31,8 +31,8 @@ export async function structureOCRText(ocrText, storeId) {
     }
 
     try {
-        // Gemini 1.5 Flashを使用（無料枠で利用可能、高速）
-        const model = 'gemini-1.5-flash';
+        // Gemini 2.0 Flashを使用（無料枠で利用可能、高速）
+        const model = 'gemini-2.0-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
         const prompt = createPrompt(ocrText, storeId);
