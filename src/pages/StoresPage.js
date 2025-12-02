@@ -13,18 +13,39 @@ import { searchNearbyStores } from '../services/storeSearchService.js';
  */
 async function mergeStoresFromDBAndAPI(userLocation, dbStores, apiStores) {
     // APIから取得した店舗をデータベースに追加（存在しない場合のみ）
+    const addResults = [];
     for (const apiStore of apiStores) {
         try {
-            await addStoreIfNotExists({
+            const result = await addStoreIfNotExists({
                 name: apiStore.name,
                 latitude: apiStore.latitude,
                 longitude: apiStore.longitude,
                 address: apiStore.address || ''
             });
+            
+            if (result.success) {
+                addResults.push({ store: apiStore, success: true, isNew: result.isNew });
+            } else {
+                console.warn(`店舗追加失敗 (${apiStore.name}):`, result.error);
+                addResults.push({ store: apiStore, success: false, error: result.error });
+            }
         } catch (error) {
             // 店舗追加に失敗しても続行（APIから取得した店舗として表示する）
-            console.warn('店舗追加エラー:', error);
+            console.error('店舗追加エラー:', error);
+            console.error('エラー詳細:', {
+                name: apiStore.name,
+                latitude: apiStore.latitude,
+                longitude: apiStore.longitude,
+                error: error.message,
+                stack: error.stack
+            });
+            addResults.push({ store: apiStore, success: false, error: error.message });
         }
+    }
+
+    // データベースへの追加処理が完了するまで少し待機（データベースの反映を待つ）
+    if (addResults.some(r => r.success)) {
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // データベースの店舗を再取得（追加された店舗を含む）
@@ -90,9 +111,17 @@ export async function StoresPage(userLocation) {
             userLocation.lng,
             2000 // 2km以内
         );
+        console.log(`✅ APIから${apiStores.length}件の店舗を取得しました`);
     } catch (error) {
-        console.error('店舗検索エラー:', error);
+        console.error('❌ 店舗検索エラー:', error);
+        console.error('エラー詳細:', {
+            message: error.message,
+            stack: error.stack,
+            lat: userLocation.lat,
+            lng: userLocation.lng
+        });
         // エラーが発生してもデータベースの店舗は表示する
+        apiStores = [];
     }
 
     // データベースの店舗とAPIから取得した店舗を統合
