@@ -15,6 +15,8 @@ let supabaseInitialized = false;
 // 環境変数が設定されている場合のみSupabaseクライアントを初期化
 if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('⚠️ Supabase環境変数が設定されていません。モックデータを使用します。');
+    console.warn('   VITE_SUPABASE_URL:', supabaseUrl ? '設定済み' : '未設定');
+    console.warn('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '設定済み' : '未設定');
 } else {
     try {
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -23,6 +25,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
             }
         });
         supabaseInitialized = true;
+        console.log('✅ Supabase接続成功');
     } catch (error) {
         console.error('❌ Supabase接続エラー:', error);
     }

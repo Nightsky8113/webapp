@@ -49,7 +49,12 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
             if (!saveResult.success) {
                 console.warn('データベース保存に失敗しました:', saveResult.error);
                 // 保存失敗しても、抽出した商品情報は返す
+            } else {
+                console.log(`✅ ${saveResult.savedCount}件の商品情報をデータベースに保存しました`);
             }
+        } else {
+            console.warn('⚠️ Supabaseが初期化されていません。商品情報は抽出されましたが、データベースには保存されませんでした。');
+            console.warn('   .envファイルにVITE_SUPABASE_URLとVITE_SUPABASE_ANON_KEYを設定し、開発サーバーを再起動してください。');
         }
     }
 
@@ -75,13 +80,14 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
 async function saveItemsToDatabase(items, flyerId, storeId) {
     try {
         // itemsテーブルに商品を保存
+        // 注意: itemsテーブルには store_id, description, category カラムは存在しません
+        // スキーマ: id, flyer_id, name, genre_id, price, confidence, bbox_x, bbox_y, bbox_width, bbox_height, created_at
         const itemsToInsert = items.map(item => ({
             flyer_id: flyerId,
-            store_id: storeId,
             name: item.name,
-            price: item.price,
-            description: item.description || null,
-            category: item.category || null
+            price: Math.round(item.price), // INTEGER型なので整数に変換
+            // description と category は items テーブルに存在しないため、保存しない
+            // 将来的に description や category が必要な場合は、マイグレーションでカラムを追加する必要があります
         }));
 
         const { data, error } = await supabase
