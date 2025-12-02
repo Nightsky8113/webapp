@@ -58,7 +58,7 @@ export async function structureOCRText(ocrText, storeId) {
                 ],
                 generationConfig: {
                     temperature: 0.3, // 一貫性を重視
-                    maxOutputTokens: 2000,
+                    maxOutputTokens: 4000, // より多くのトークンを許可（長いレスポンスに対応）
                     responseMimeType: 'application/json' // JSON形式で返す
                 }
             })
@@ -96,10 +96,22 @@ export async function structureOCRText(ocrText, storeId) {
         let items = [];
         try {
             // JSONコードブロックがある場合は除去
-            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
-                             content.match(/```\s*([\s\S]*?)\s*```/) ||
-                             [null, content];
-            const jsonText = jsonMatch[1] || content;
+            let jsonText = content;
+            
+            // ```json または ``` コードブロックを除去
+            const jsonBlockMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                                  jsonText.match(/```\s*([\s\S]*?)\s*```/);
+            if (jsonBlockMatch) {
+                jsonText = jsonBlockMatch[1];
+            }
+            
+            // 前後の空白や改行を除去
+            jsonText = jsonText.trim();
+            
+            // JSON文字列の修復を試みる
+            jsonText = repairJSONString(jsonText);
+            
+            // JSONをパース
             const parsed = JSON.parse(jsonText);
             
             // 配列形式かオブジェクト形式かを判定
@@ -111,10 +123,14 @@ export async function structureOCRText(ocrText, storeId) {
                 items = [parsed];
             }
         } catch (parseError) {
-            console.warn('JSON解析エラー:', parseError);
+            console.error('JSON解析エラー:', parseError);
+            console.error('JSONコンテンツ（最初の500文字）:', content.substring(0, 500));
+            console.error('JSONコンテンツ（最後の500文字）:', content.substring(Math.max(0, content.length - 500)));
+            
+            // エラーの詳細情報を含めて返す
             return {
                 success: false,
-                error: `JSON解析に失敗しました: ${parseError.message}`
+                error: `JSON解析に失敗しました: ${parseError.message}\n\nJSONの形式が正しくない可能性があります。OCRテキストが長すぎるか、特殊文字が含まれている可能性があります。`
             };
         }
 
@@ -140,6 +156,72 @@ export async function structureOCRText(ocrText, storeId) {
             error: `テキスト構造化に失敗しました: ${error.message}`
         };
     }
+}
+
+/**
+ * 不完全なJSON文字列から有効な部分を抽出する
+ * @param {string} jsonText - 処理するJSON文字列
+ * @returns {string} 抽出された有効なJSON文字列
+ */
+function repairJSONString(jsonText) {
+    // 最初の [ を見つける（配列形式を期待）
+    const firstBracket = jsonText.indexOf('[');
+    if (firstBracket < 0) {
+        return jsonText; // [ が見つからない場合、そのまま返す
+    }
+    
+    // [ 以降の部分を取得
+    let jsonContent = jsonText.substring(firstBracket);
+    
+    // 最後の ] を見つけて、その位置までを有効なJSONとして扱う
+    // ただし、文字列リテラル内の ] は無視する必要がある
+    let bracketCount = 0;
+    let inString = false;
+    let escapeNext = false;
+    let lastValidPos = -1;
+    
+    for (let i = 0; i < jsonContent.length; i++) {
+        const char = jsonContent[i];
+        
+        if (escapeNext) {
+            escapeNext = false;
+            continue;
+        }
+        
+        if (char === '\\') {
+            escapeNext = true;
+            continue;
+        }
+        
+        if (char === '"') {
+            inString = !inString;
+            continue;
+        }
+        
+        if (inString) continue;
+        
+        if (char === '[') {
+            bracketCount++;
+        } else if (char === ']') {
+            bracketCount--;
+            if (bracketCount === 0) {
+                lastValidPos = i + 1;
+            }
+        }
+    }
+    
+    // 有効な位置が見つかった場合、その部分だけを返す
+    if (lastValidPos > 0) {
+        return jsonContent.substring(0, lastValidPos);
+    }
+    
+    // 見つからない場合、最後の ] の位置を探す（簡易的な方法）
+    const lastBracket = jsonContent.lastIndexOf(']');
+    if (lastBracket > 0) {
+        return jsonContent.substring(0, lastBracket + 1);
+    }
+    
+    return jsonContent;
 }
 
 /**
