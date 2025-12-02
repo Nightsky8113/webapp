@@ -52,21 +52,17 @@ function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
         <h2 class="section-title">お店を探す</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <button id="search-by-product" class="search-option-card product">
-            <div class="flex flex-col items-center md:items-start">
-              <div class="card-icon">🛍️</div>
+            <div class="search-option-card-content">
               <h3 class="card-title">商品から探す</h3>
               <p class="card-description">商品名で検索またはジャンルから選択できます</p>
               <div class="card-info">📍 位置情報から5km圏内の商品を安い順で表示</div>
-              <div class="card-action"><span>選択する</span><span class="arrow">→</span></div>
             </div>
           </button>
           <button id="search-by-location" class="search-option-card location">
-            <div class="flex flex-col items-center md:items-start">
-              <div class="card-icon">📍</div>
+            <div class="search-option-card-content">
               <h3 class="card-title">位置情報から探す</h3>
               <p class="card-description">現在地から近い順に店舗を表示します</p>
               <div class="card-info">🏪 最大6店舗を距離順で表示</div>
-              <div class="card-action"><span>選択する</span><span class="arrow">→</span></div>
             </div>
           </button>
         </div>
@@ -125,11 +121,24 @@ export function attachHomePageEvents() {
 
     const todayContainer = document.getElementById('today-flyers-container');
     if (todayContainer) {
-        attachStoreCardEvents(todayContainer, (storeId) => {
+        attachStoreCardEvents(todayContainer, async (storeId) => {
             // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
             const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-            const lat = urlParams.get('lat');
-            const lng = urlParams.get('lng');
+            let lat = urlParams.get('lat');
+            let lng = urlParams.get('lng');
+            
+            // 位置情報がない場合、現在の位置情報を取得を試みる
+            if (!lat || !lng) {
+                try {
+                    const { requestUserLocation } = await import('../utils/location.js');
+                    const currentLocation = await requestUserLocation();
+                    lat = currentLocation.lat.toString();
+                    lng = currentLocation.lng.toString();
+                } catch (error) {
+                    // 位置情報の取得に失敗した場合（権限拒否など）は位置情報なしで遷移
+                    console.warn('位置情報の取得に失敗しました:', error.message);
+                }
+            }
             
             if (lat && lng) {
                 window.location.hash = `/store/${storeId}?lat=${lat}&lng=${lng}`;

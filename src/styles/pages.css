@@ -99,13 +99,20 @@
 .search-option-card {
   border-radius: 1rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 2.5rem;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 3px solid;
-  text-align: left;
+  text-align: center;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  min-height: 200px;
+  width: 100%;
 }
 
 .search-option-card::before {
@@ -121,7 +128,7 @@
 
 .search-option-card:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-4px) scale(1.01);
 }
 
 .search-option-card:hover::before {
@@ -152,29 +159,29 @@
   border-color: #6ee7b7;
 }
 
-.search-option-card .card-icon {
-  font-size: 4.5rem;
-  line-height: 1;
-  margin-bottom: 1.25rem;
-  display: inline-block;
-  transition: transform 0.3s ease;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.search-option-card:hover .card-icon {
-  transform: scale(1.1) rotate(5deg);
+.search-option-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
 }
 
 .search-option-card .card-title {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
+  text-align: center;
+  width: 100%;
 }
 
 .search-option-card .card-description {
   font-size: 0.875rem;
   line-height: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  width: 100%;
 }
 
 .search-option-card.product .card-description {
@@ -191,37 +198,9 @@
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
   font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-.search-option-card .card-action {
-  margin-top: 1.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background-color: rgba(255, 255, 255, 0.25);
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
-  transition: all 0.3s ease;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.search-option-card:hover .card-action {
-  background-color: rgba(255, 255, 255, 0.35);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateX(4px);
-}
-
-.search-option-card .card-action .arrow {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-  transition: transform 0.3s ease;
-}
-
-.search-option-card:hover .card-action .arrow {
-  transform: translateX(4px);
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* セクション見出し */
@@ -560,6 +539,15 @@
   border: 2px solid #e5e7eb;
   position: relative;
   z-index: 1;
+}
+
+/* 店舗詳細ページの地図コンテナ */
+#store-detail-map {
+  width: 100% !important;
+  height: 384px !important;
+  min-height: 384px !important;
+  display: block !important;
+  position: relative;
 }
 
 .genre-stores-list-section {

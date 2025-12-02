@@ -1,5 +1,4 @@
 import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId } from '../services/dataService.js';
-import { calculateDistance } from '../utils/distance.js';
 import { escapeHtml, formatPrice, formatDate } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
@@ -31,16 +30,7 @@ export async function StoreDetailPage(storeId, userLocation) {
         }
     }
 
-    // 位置情報がない場合の処理
-    let distance = 0;
-    if (userLocation && userLocation.lat && userLocation.lng) {
-        distance = calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            store.latitude,
-            store.longitude
-        );
-    }
+    // 距離表示は最大6件表示のページのみにするため、ここでは計算しない
 
     // チラシから商品を取得（最大3件）
     let itemsHTML = '';
@@ -79,16 +69,12 @@ export async function StoreDetailPage(storeId, userLocation) {
     // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
     const walkMinutes = await getWalkingTime(storeId);
     
-    // 距離表示用テキスト（距離が計算されていない場合は「-」のみ、計算されている場合は「X.X km」）
-    const distanceText = distance > 0 ? `${distance.toFixed(1)} km` : '-';
-
     const templateData = {
         storeNotFound: false,
         hasContent: true,
         storeId: storeId,
         storeName: storeName,
         address: address,
-        distanceText: distanceText,
         station: station,
         walkMinutes: walkMinutes || null,
         hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
@@ -98,7 +84,12 @@ export async function StoreDetailPage(storeId, userLocation) {
         noItems: itemsHTML.length === 0,
         itemsHTML: itemsHTML,
         bestItemName: escapeHtml(store.summary_best_item_name || ''),
-        bestItemPrice: formatPrice(store.summary_best_item_price || 0)
+        bestItemPrice: formatPrice(store.summary_best_item_price || 0),
+        hasStoreLocation: store.latitude && store.longitude,
+        storeLat: store.latitude || null,
+        storeLng: store.longitude || null,
+        userLat: userLocation?.lat || null,
+        userLng: userLocation?.lng || null
     };
 
     // テンプレートを読み込んでレンダリング
@@ -106,21 +97,20 @@ export async function StoreDetailPage(storeId, userLocation) {
         return await loadAndRenderTemplate('/templates/pages/store-detail-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        const distanceText = distance > 0 ? `${distance.toFixed(1)} km` : '-';
-        return getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceText, station, walkMinutes, imageUrl, updatedAt, itemsHTML, store.summary_best_item_name, store.summary_best_item_price);
+        return getStoreDetailPageHTMLFallback(storeId, storeName, address, station, walkMinutes, imageUrl, updatedAt, itemsHTML, store.summary_best_item_name, store.summary_best_item_price, store.latitude, store.longitude, userLocation);
     }
 }
 
 /**
  * フォールバック用HTML（テンプレート読み込み失敗時）
  */
-function getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceText, station, walkMinutes, imageUrl, updatedAt, itemsHTML, bestItemName, bestItemPrice) {
+function getStoreDetailPageHTMLFallback(storeId, storeName, address, station, walkMinutes, imageUrl, updatedAt, itemsHTML, bestItemName, bestItemPrice, storeLat, storeLng, userLocation) {
     return `
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <button id="back-button" class="btn-back"><span class="text-lg">←</span><span>戻る</span></button>
       </div>
-      <div class="store-detail-card">
+      <div class="store-detail-card" data-store-id="${storeId}">
         <div class="relative">
           <a 
             href="${imageUrl}" 
@@ -140,10 +130,6 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceTex
             <div class="flex items-start gap-3">
               <span class="text-2xl">📍</span>
               <div><div class="font-medium text-gray-700">住所</div><div>${address}</div></div>
-            </div>
-            <div class="flex items-start gap-3">
-              <span class="text-2xl">📏</span>
-              <div><div class="font-medium text-gray-700">現在地からの距離</div><div>${distanceText}</div></div>
             </div>
             ${station ? `
             <div class="flex items-start gap-3">
@@ -168,6 +154,17 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceTex
           `}
         </div>
       </div>
+      ${storeLat && storeLng ? `
+      <div class="store-detail-card">
+        <div class="p-6">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+            <span>🗺️</span>
+            店舗の位置
+          </h2>
+          <div id="store-detail-map" class="w-full h-96 rounded-lg overflow-hidden border-2 border-gray-200"></div>
+        </div>
+      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -176,7 +173,7 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, distanceTex
  * 店舗詳細ページに必要なイベントハンドラーを設定する
  * 戻るボタンの初期化を設定する（画像拡大モーダルはmain.jsで初期化済み）
  */
-export function attachStoreDetailPageEvents() {
+export async function attachStoreDetailPageEvents() {
     const backButton = document.getElementById('back-button');
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -186,4 +183,130 @@ export function attachStoreDetailPageEvents() {
 
     // 画像拡大モーダルは既にmain.jsで初期化されているため、ここでは何もしない
     // data-lightbox属性を持つリンクは自動的にモーダルで開く
+
+    // 地図を初期化（DOMのレンダリングを待つ）
+    const initStoreMap = async () => {
+        // 地図コンテナが見つかるまで待つ（最大5秒）
+        let mapContainer = null;
+        for (let i = 0; i < 50; i++) {
+            mapContainer = document.getElementById('store-detail-map');
+            if (mapContainer) break;
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        if (!mapContainer) {
+            console.error('地図コンテナが見つかりませんでした');
+            return;
+        }
+
+        try {
+            // 店舗の位置情報を取得（data属性から）
+            const storeId = document.querySelector('[data-store-id]')?.dataset.storeId;
+            if (!storeId) {
+                console.warn('店舗IDが見つかりません');
+                return;
+            }
+
+            const { getStoreById } = await import('../services/dataService.js');
+            const store = await getStoreById(storeId);
+            
+            if (!store || !store.latitude || !store.longitude) {
+                console.warn('店舗の位置情報がありません');
+                return;
+            }
+
+            // URLパラメータから位置情報を取得
+            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const userLat = urlParams.get('lat') ? parseFloat(urlParams.get('lat')) : null;
+            const userLng = urlParams.get('lng') ? parseFloat(urlParams.get('lng')) : null;
+
+            // Leafletが読み込まれるまで待つ（最大5秒）
+            for (let i = 0; i < 50; i++) {
+                if (typeof L !== 'undefined') break;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            if (typeof L === 'undefined') {
+                console.error('Leafletが読み込まれていません');
+                return;
+            }
+
+            // 既存の地図インスタンスを削除（直接管理）
+            if (window.storeDetailMapInstance) {
+                window.storeDetailMapInstance.remove();
+                window.storeDetailMapInstance = null;
+            }
+
+            // 地図コンテナのサイズを明示的に設定
+            mapContainer.style.width = '100%';
+            mapContainer.style.height = '384px';
+            mapContainer.style.minHeight = '384px';
+            mapContainer.style.display = 'block';
+            mapContainer.style.position = 'relative';
+            
+            // 親要素のスタイルも確認・設定
+            let parent = mapContainer.parentElement;
+            while (parent && parent !== document.body) {
+                if (getComputedStyle(parent).display === 'none') {
+                    parent.style.display = 'block';
+                }
+                if (getComputedStyle(parent).width === '0px' || getComputedStyle(parent).width === 'auto') {
+                    parent.style.width = '100%';
+                }
+                parent = parent.parentElement;
+            }
+            
+            // サイズ設定後、少し待ってから地図を初期化
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 地図を直接初期化
+            const map = L.map('store-detail-map').setView([store.latitude, store.longitude], 15);
+            window.storeDetailMapInstance = map; // グローバルに保存して後で削除できるようにする
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // 地図のサイズを再計算（DOMが完全にレンダリングされた後）
+            setTimeout(() => {
+                map.invalidateSize();
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            }, 300);
+
+            // 店舗マーカーを追加
+            const storeMarker = L.marker([store.latitude, store.longitude])
+                .addTo(map)
+                .bindPopup(`<div class="text-center"><strong>${store.name}</strong></div>`);
+
+            // 位置情報がある場合、現在地のマーカーを追加
+            if (userLat && userLng) {
+                const userMarker = L.marker([userLat, userLng])
+                    .addTo(map)
+                    .bindPopup('あなたの現在地');
+
+                // 地図の表示範囲を調整（店舗と現在地の両方を含む）
+                setTimeout(() => {
+                    const bounds = L.latLngBounds(
+                        [[store.latitude, store.longitude], [userLat, userLng]]
+                    );
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                    storeMarker.openPopup();
+                }, 500);
+            } else {
+                // 位置情報がない場合、店舗を中心に表示
+                setTimeout(() => {
+                    map.setView([store.latitude, store.longitude], 15);
+                    storeMarker.openPopup();
+                }, 500);
+            }
+        } catch (error) {
+            console.error('地図の初期化エラー:', error);
+        }
+    };
+
+    // 地図の初期化を開始
+    setTimeout(initStoreMap, 200);
 }

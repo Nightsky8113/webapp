@@ -181,12 +181,40 @@
     font-size: 14px;
     text-align: right;
     transition: border-color 0.2s;
+    min-width: 100px;
 }
 
 .ocr-result-price input[type="number"]:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ジャンル選択 */
+.ocr-result-genre {
+    width: 100%;
+}
+
+.ocr-result-genre select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 130px;
+}
+
+.ocr-result-genre select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ocr-result-genre select:hover {
+    border-color: #9ca3af;
 }
 
 /* モーダルフッター */

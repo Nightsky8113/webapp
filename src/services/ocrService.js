@@ -135,10 +135,16 @@ async function saveItemsToDatabase(items, flyerId, storeId) {
         // itemsテーブルに商品を保存
         // スキーマ: id, flyer_id, name, genre_id, price, confidence, bbox_x, bbox_y, bbox_width, bbox_height, created_at
         const itemsToInsert = items.map(item => {
-            // ジャンル名からジャンルIDを取得
-            // genre または category の両方に対応
-            const genreName = item.genre || item.category || '';
-            const genreId = genreMap.get(genreName) || null;
+            // ジャンルIDを取得（優先順位: genreId > ジャンル名から検索）
+            let genreId = null;
+            if (item.genreId) {
+                // 既にジャンルIDが設定されている場合
+                genreId = parseInt(item.genreId);
+            } else {
+                // ジャンル名からジャンルIDを取得
+                const genreName = item.genre || item.category || '';
+                genreId = genreMap.get(genreName) || null;
+            }
             
             return {
                 flyer_id: flyerId,
