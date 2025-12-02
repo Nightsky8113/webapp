@@ -6,6 +6,8 @@
  * Google Gemini APIは個人開発・テスト目的であれば、ほぼ無制限に無料で利用可能
  */
 
+import { getGenres } from './dataService.js';
+
 /**
  * OCRで抽出したテキストを商品情報として構造化する
  * @param {string} ocrText - OCRで抽出したテキスト
@@ -35,7 +37,9 @@ export async function structureOCRText(ocrText, storeId) {
         const model = 'gemini-2.0-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
-        const prompt = createPrompt(ocrText, storeId);
+        // ジャンルリストを取得
+        const genres = await getGenres();
+        const prompt = createPrompt(ocrText, storeId, genres);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -121,7 +125,7 @@ export async function structureOCRText(ocrText, storeId) {
                 name: String(item.name || '').trim(),
                 price: parseFloat(item.price) || 0,
                 description: String(item.description || '').trim(),
-                category: String(item.category || '').trim()
+                genre: String(item.genre || item.category || '').trim() // genreまたはcategoryの両方に対応
             }))
             .filter(item => item.name.length > 0 && item.price > 0);
 
@@ -142,52 +146,70 @@ export async function structureOCRText(ocrText, storeId) {
  * Gemini API用のプロンプトを作成する
  * @param {string} ocrText - OCRで抽出したテキスト
  * @param {number} storeId - 店舗ID
+ * @param {Array} genres - ジャンルリスト
  * @returns {string} プロンプトテキスト
  */
-function createPrompt(ocrText, storeId) {
+function createPrompt(ocrText, storeId, genres = []) {
     // OCRテキストが長すぎる場合は切り詰める（Gemini APIのトークン制限を考慮）
     const maxTextLength = 50000; // 安全のため50,000文字に制限
     const truncatedText = ocrText.length > maxTextLength 
         ? ocrText.substring(0, maxTextLength) + '\n...（テキストが長いため一部を省略）'
         : ocrText;
     
+    // ジャンルリストを文字列形式に変換
+    const genresList = genres.map(g => `- ${g.name}`).join('\n');
+    const genresNames = genres.map(g => g.name).join('、');
+    
     return `
-あなたはチラシから商品情報を抽出する専門家です。OCRで抽出されたテキストから、商品名、価格、説明などの情報を構造化してJSON形式で返してください。
+あなたはチラシから商品情報を抽出する専門家です。OCRで抽出されたテキストから、商品名、価格、説明、ジャンルなどの情報を構造化してJSON形式で返してください。
 
 【OCRテキスト】
 ${truncatedText}
+
+【利用可能なジャンル一覧】
+以下のジャンルから、各商品に最も適切なジャンルを1つ選択してください。該当するジャンルがない場合は、最も近いジャンルを選択してください。
+${genresList}
 
 【抽出する情報】
 - name: 商品名（必須、文字列）
 - price: 価格（必須、数値のみ、単位（円など）は含めない）
 - description: 商品説明（任意、文字列）
-- category: カテゴリ（任意、文字列）
+- genre: ジャンル（必須、文字列。上記のジャンル一覧から選択。ジャンル名は完全一致してください）
 
 【重要な注意事項】
 1. 商品名と価格が両方揃っているもののみ抽出してください
 2. 価格は数値のみで、単位（円、¥など）は含めないでください
 3. 不確実な情報や推測した情報は含めないでください
-4. 必ず有効なJSON配列形式で返してください
-5. 商品が見つからない場合は空配列 [] を返してください
+4. ジャンルは必ず上記のジャンル一覧（${genresNames}）の中から選択してください
+5. ジャンル名は完全一致する必要があります（例：「精肉」「鮮魚」「野菜」など）
+6. 必ず有効なJSON配列形式で返してください
+7. 商品が見つからない場合は空配列 [] を返してください
 
 【出力形式】
 JSON配列形式で返してください。例:
 [
   {
-    "name": "商品名1",
-    "price": 100,
-    "description": "商品説明1",
-    "category": "カテゴリ1"
+    "name": "国産牛ロース",
+    "price": 1980,
+    "description": "国産牛肉",
+    "genre": "精肉"
   },
   {
-    "name": "商品名2",
-    "price": 200,
-    "description": "商品説明2",
-    "category": "カテゴリ2"
+    "name": "本マグロ刺身",
+    "price": 1500,
+    "description": "新鮮なマグロ",
+    "genre": "鮮魚"
+  },
+  {
+    "name": "トマト",
+    "price": 280,
+    "description": "",
+    "genre": "野菜"
   }
 ]
 
 必ず有効なJSON形式で返してください。JSON以外のテキストは含めないでください。
+ジャンルは必ず「${genresNames}」の中から選択してください。
 `;
 }
 

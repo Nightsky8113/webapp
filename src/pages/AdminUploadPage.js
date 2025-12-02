@@ -2,7 +2,8 @@ import { getStores } from '../services/dataService.js';
 import { uploadAndSaveFlyer } from '../services/storageService.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
-import { processFlyerOCR } from '../services/ocrService.js';
+import { processFlyerOCRWithoutSave, saveOCRItemsToDatabase, updateOCRStatus } from '../services/ocrService.js';
+import { showOCRResultModal } from '../components/OCRResultModal.js';
 
 /**
  * 管理者向けチラシ画像アップロードページのコンテンツを生成する
@@ -166,22 +167,89 @@ export async function attachAdminUploadPageEvents() {
                     if (enableOCR && enableOCR.checked) {
                         showStatus(uploadStatus, '🔄 OCR処理を実行中...（1-2分かかる場合があります）', 'loading');
                         
-                        // OCR処理を非同期で実行
-                        processFlyerOCR(result.imageUrl, result.flyer.id, storeId)
+                        // OCR処理を実行（データベースに保存しない）
+                        processFlyerOCRWithoutSave(result.imageUrl, storeId)
                             .then(ocrResult => {
-                                if (ocrResult.success) {
-                                    const itemsCount = ocrResult.items?.length || 0;
-                                    if (itemsCount > 0) {
-                                        showStatus(uploadStatus, `✅ OCR処理完了！商品情報を${itemsCount}件抽出しました。`, 'success');
-                                    } else {
-                                        showStatus(uploadStatus, `⚠️ OCR処理は完了しましたが、商品情報を抽出できませんでした。`, 'error');
-                                    }
+                                if (ocrResult.success && ocrResult.items && ocrResult.items.length > 0) {
+                                    // OCR結果をモーダルで表示
+                                    showStatus(uploadStatus, '✅ OCR処理完了！抽出結果を確認してください。', 'success');
                                     
+                                    // モーダルを表示してユーザーが結果を確認できるようにする
+                                    showOCRResultModal(
+                                        ocrResult.items,
+                                        async (selectedItems) => {
+                                            // ユーザーが「商品を追加」をクリックした時
+                                            if (selectedItems.length > 0) {
+                                                showStatus(uploadStatus, '🔄 商品情報をデータベースに保存中...', 'loading');
+                                                
+                                                try {
+                                                    // 選択された商品をデータベースに保存
+                                                    const saveResult = await saveOCRItemsToDatabase(
+                                                        selectedItems,
+                                                        result.flyer.id,
+                                                        storeId
+                                                    );
+                                                    
+                                                    if (saveResult.success) {
+                                                        // OCR処理完了フラグを更新
+                                                        await updateOCRStatus(result.flyer.id, true);
+                                                        
+                                                        showStatus(uploadStatus, `✅ ${saveResult.savedCount}件の商品情報を追加しました。`, 'success');
+                                                        
+                                                        setTimeout(() => {
+                                                            if (uploadStatus) {
+                                                                uploadStatus.classList.add('hidden');
+                                                            }
+                                                        }, 5000);
+                                                        
+                                                        // フォームをリセット
+                                                        uploadForm.reset();
+                                                        if (previewArea) {
+                                                            previewArea.classList.add('hidden');
+                                                            previewArea.innerHTML = '';
+                                                        }
+                                                    } else {
+                                                        showStatus(uploadStatus, `❌ 商品情報の保存に失敗しました: ${saveResult.error}`, 'error');
+                                                    }
+                                                } catch (error) {
+                                                    console.error('商品情報保存エラー:', error);
+                                                    showStatus(uploadStatus, `❌ 商品情報の保存中にエラーが発生しました: ${error.message}`, 'error');
+                                                }
+                                            } else {
+                                                showStatus(uploadStatus, '⚠️ 追加する商品が選択されていません。', 'error');
+                                            }
+                                        },
+                                        () => {
+                                            // ユーザーが「キャンセル」をクリックした時
+                                            showStatus(uploadStatus, '⚠️ OCR結果の追加をキャンセルしました。', 'error');
+                                            setTimeout(() => {
+                                                if (uploadStatus) {
+                                                    uploadStatus.classList.add('hidden');
+                                                }
+                                            }, 3000);
+                                            
+                                            // フォームをリセット
+                                            uploadForm.reset();
+                                            if (previewArea) {
+                                                previewArea.classList.add('hidden');
+                                                previewArea.innerHTML = '';
+                                            }
+                                        }
+                                    );
+                                } else if (ocrResult.success && (!ocrResult.items || ocrResult.items.length === 0)) {
+                                    showStatus(uploadStatus, `⚠️ OCR処理は完了しましたが、商品情報を抽出できませんでした。`, 'error');
                                     setTimeout(() => {
                                         if (uploadStatus) {
                                             uploadStatus.classList.add('hidden');
                                         }
-                                    }, 8000);
+                                    }, 5000);
+                                    
+                                    // フォームをリセット
+                                    uploadForm.reset();
+                                    if (previewArea) {
+                                        previewArea.classList.add('hidden');
+                                        previewArea.innerHTML = '';
+                                    }
                                 } else {
                                     // エラーメッセージを改行で分割して表示
                                     const errorMessage = ocrResult.error || '不明なエラー';
@@ -193,6 +261,13 @@ export async function attachAdminUploadPageEvents() {
                                             uploadStatus.classList.add('hidden');
                                         }
                                     }, 10000);
+                                    
+                                    // フォームをリセット
+                                    uploadForm.reset();
+                                    if (previewArea) {
+                                        previewArea.classList.add('hidden');
+                                        previewArea.innerHTML = '';
+                                    }
                                 }
                             })
                             .catch(error => {
@@ -203,6 +278,13 @@ export async function attachAdminUploadPageEvents() {
                                         uploadStatus.classList.add('hidden');
                                     }
                                 }, 10000);
+                                
+                                // フォームをリセット
+                                uploadForm.reset();
+                                if (previewArea) {
+                                    previewArea.classList.add('hidden');
+                                    previewArea.innerHTML = '';
+                                }
                             });
                     } else {
                         setTimeout(() => {
@@ -210,12 +292,13 @@ export async function attachAdminUploadPageEvents() {
                                 uploadStatus.classList.add('hidden');
                             }
                         }, 3000);
-                    }
-                    
-                    uploadForm.reset();
-                    if (previewArea) {
-                        previewArea.classList.add('hidden');
-                        previewArea.innerHTML = '';
+                        
+                        // フォームをリセット
+                        uploadForm.reset();
+                        if (previewArea) {
+                            previewArea.classList.add('hidden');
+                            previewArea.innerHTML = '';
+                        }
                     }
                 } else {
                     showStatus(uploadStatus, `❌ エラー: ${result.error}`, 'error');

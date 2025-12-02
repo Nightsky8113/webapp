@@ -12,6 +12,7 @@
 import { extractTextFromImage } from './visionService.js';
 import { structureOCRText } from './geminiService.js';
 import { supabase, supabaseInitialized } from './supabase.js';
+import { getGenres } from './dataService.js';
 
 /**
  * チラシ画像から商品情報を自動抽出する（OCR処理 + 構造化）
@@ -71,6 +72,54 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
 }
 
 /**
+ * チラシ画像から商品情報を自動抽出する（OCR処理 + 構造化、データベース保存なし）
+ * ユーザーが結果を確認してから保存できるように、データベースへの保存は行わない
+ * @param {string} imageUrl - チラシ画像のURL
+ * @param {number} storeId - 店舗ID（商品のジャンルを推測するために使用）
+ * @returns {Promise<Object>} {success: boolean, items?: Array, ocrText?: string, error?: string}
+ */
+export async function processFlyerOCRWithoutSave(imageUrl, storeId) {
+    // ステップ1: Google Cloud Vision APIでテキスト抽出
+    const ocrResult = await extractTextFromImage(imageUrl);
+    
+    if (!ocrResult.success || !ocrResult.text) {
+        return {
+            success: false,
+            error: ocrResult.error || 'テキスト抽出に失敗しました'
+        };
+    }
+
+    // ステップ2: Google Gemini APIでテキストを構造化
+    const structureResult = await structureOCRText(ocrResult.text, storeId);
+    
+    if (!structureResult.success || !structureResult.items) {
+        return {
+            success: false,
+            error: structureResult.error || 'テキスト構造化に失敗しました'
+        };
+    }
+
+    // データベースへの保存は行わない（ユーザーが確認してから保存）
+    return {
+        success: true,
+        items: structureResult.items,
+        ocrText: ocrResult.text
+    };
+}
+
+/**
+ * 抽出した商品情報をデータベースに保存する（エクスポート）
+ * ユーザーがOCR結果を確認した後に手動で保存する際に使用
+ * @param {Array} items - 商品情報の配列
+ * @param {number} flyerId - チラシID
+ * @param {number} storeId - 店舗ID
+ * @returns {Promise<Object>} {success: boolean, savedCount?: number, error?: string}
+ */
+export async function saveOCRItemsToDatabase(items, flyerId, storeId) {
+    return await saveItemsToDatabase(items, flyerId, storeId);
+}
+
+/**
  * 抽出した商品情報をデータベースに保存する
  * @param {Array} items - 商品情報の配列
  * @param {number} flyerId - チラシID
@@ -79,16 +128,26 @@ export async function processFlyerOCR(imageUrl, flyerId, storeId) {
  */
 async function saveItemsToDatabase(items, flyerId, storeId) {
     try {
+        // ジャンルリストを取得して、ジャンル名からジャンルIDへのマッピングを作成
+        const genres = await getGenres();
+        const genreMap = new Map(genres.map(g => [g.name, g.id]));
+        
         // itemsテーブルに商品を保存
-        // 注意: itemsテーブルには store_id, description, category カラムは存在しません
         // スキーマ: id, flyer_id, name, genre_id, price, confidence, bbox_x, bbox_y, bbox_width, bbox_height, created_at
-        const itemsToInsert = items.map(item => ({
-            flyer_id: flyerId,
-            name: item.name,
-            price: Math.round(item.price), // INTEGER型なので整数に変換
-            // description と category は items テーブルに存在しないため、保存しない
-            // 将来的に description や category が必要な場合は、マイグレーションでカラムを追加する必要があります
-        }));
+        const itemsToInsert = items.map(item => {
+            // ジャンル名からジャンルIDを取得
+            // genre または category の両方に対応
+            const genreName = item.genre || item.category || '';
+            const genreId = genreMap.get(genreName) || null;
+            
+            return {
+                flyer_id: flyerId,
+                name: item.name,
+                genre_id: genreId, // ジャンルIDを設定（見つからない場合はnull）
+                price: Math.round(item.price), // INTEGER型なので整数に変換
+                // description は items テーブルに存在しないため、保存しない
+            };
+        }).filter(item => item.name && item.price > 0); // 商品名と価格が有効なもののみ
 
         const { data, error } = await supabase
             .from('items')
@@ -113,11 +172,12 @@ async function saveItemsToDatabase(items, flyerId, storeId) {
 }
 
 /**
- * OCR処理完了フラグを更新する
+ * OCR処理完了フラグを更新する（エクスポート）
+ * ユーザーがOCR結果を確認した後に手動で更新する際に使用
  * @param {number} flyerId - チラシID
  * @param {boolean} ocrDone - OCR処理完了フラグ
  */
-async function updateOCRStatus(flyerId, ocrDone) {
+export async function updateOCRStatus(flyerId, ocrDone) {
     try {
         const { error } = await supabase
             .from('flyers')
