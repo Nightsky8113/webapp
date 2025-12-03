@@ -240,3 +240,4 @@ VITE_GOOGLE_GEMINI_API_KEY=your-api-key-here
 **ステータス**: ✅ 準備完了 - 環境変数設定のみで有効化可能
 
 
+

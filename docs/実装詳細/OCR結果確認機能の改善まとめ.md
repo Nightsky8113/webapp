@@ -123,3 +123,4 @@ function parsePrice(price) {
 - ボタンが下部に配置される
 - 見た目が整った状態になる
 
+

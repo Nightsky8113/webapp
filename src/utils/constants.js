@@ -27,3 +27,4 @@ export const MAP_BOUNDS_PADDING = 50; // 地図の境界線パディング
 export const MAX_STORES_DISPLAY = 6; // 店舗検索ページで表示する最大店舗数
 export const MAX_WALKING_TIME_TIMEOUT = 2000; // 徒歩時間取得のタイムアウト（ミリ秒）
 
+

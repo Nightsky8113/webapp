@@ -125,6 +125,12 @@ export function renderTemplate(template, data = {}) {
         html = html.replace(placeholder, value);
     });
     
+    // 処理されずに残ったテンプレートタグを削除（表示されないようにする）
+    html = html.replace(/\$\{if:[^}]+\}/g, '');
+    html = html.replace(/\$\{endif\}/g, '');
+    html = html.replace(/\$\{each:[^}]+\}/g, '');
+    html = html.replace(/\$\{endeach\}/g, '');
+    
     return html;
 }
 

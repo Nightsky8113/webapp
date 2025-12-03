@@ -19,8 +19,11 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         minPrice = 0,
         maxPrice = 10000,
         maxDistance = 10,
-        sortBy = 'price-asc' // 'price-asc', 'price-desc', 'distance'
+        sortBy = 'price-asc' // 'price-asc', 'price-desc', 'distance' - デフォルトは安い順
     } = filters;
+    
+    // sortByが未指定または無効な値の場合、安い順に設定
+    const validSortBy = (sortBy && ['price-asc', 'price-desc', 'distance'].includes(sortBy)) ? sortBy : 'price-asc';
 
     // 商品を検索
     let searchResults = searchItems(items, query);
@@ -37,7 +40,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
 
     // ソート
     let sortedResults;
-    if (sortBy === 'distance') {
+    if (validSortBy === 'distance') {
         // 距離順（店舗ごとに距離を計算）
         const storesWithDistance = sortByDistance(
             stores.filter(s => resultsWithStore.some(r => r.store.id === s.id)),
@@ -51,7 +54,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         });
     } else {
         // 価格順
-        const order = sortBy === 'price-asc' ? 'asc' : 'desc';
+        const order = validSortBy === 'price-asc' ? 'asc' : 'desc';
         sortedResults = sortByPrice(resultsWithStore, order);
     }
 
@@ -101,9 +104,9 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         minPrice: minPrice,
         maxPrice: maxPrice,
         maxDistance: maxDistance,
-        sortByPriceAscSelected: sortBy === 'price-asc' ? 'selected' : '',
-        sortByPriceDescSelected: sortBy === 'price-desc' ? 'selected' : '',
-        sortByDistanceSelected: sortBy === 'distance' ? 'selected' : '',
+        sortByPriceAscSelected: validSortBy === 'price-asc' ? 'selected' : '',
+        sortByPriceDescSelected: validSortBy === 'price-desc' ? 'selected' : '',
+        sortByDistanceSelected: validSortBy === 'distance' ? 'selected' : '',
         resultsCount: finalResults.length,
         resultsHTML: resultsHTML,
         noResults: finalResults.length === 0
@@ -114,7 +117,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         return await loadAndRenderTemplate('/templates/pages/search-results-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, sortBy, finalResults.length, resultsHTML);
+        return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, validSortBy, finalResults.length, resultsHTML);
     }
 }
 

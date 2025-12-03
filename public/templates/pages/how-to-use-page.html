@@ -1,0 +1,73 @@
+<div class="how-to-use-page">
+  <div class="space-y-6">
+    <div class="flex items-center gap-4">
+      <button id="back-button" class="btn-back">
+        <span class="text-lg">←</span>
+        <span>戻る</span>
+      </button>
+      <h1 class="page-title">使い方</h1>
+    </div>
+
+    <div class="content-card">
+      <div class="space-y-6 text-gray-700">
+        <ol class="list-decimal list-inside space-y-4 pl-4">
+          <li class="space-y-2">
+            <span class="font-semibold text-gray-900">位置情報から探すをクリック</span>
+            <ul class="list-disc list-inside ml-6 space-y-1 text-gray-600">
+              <li>これにより近くの6店舗がDBに保存されます。</li>
+            </ul>
+          </li>
+          
+          <li class="space-y-2">
+            <span class="font-semibold text-gray-900">画面右上のアップロードをクリック</span>
+          </li>
+          
+          <li class="space-y-2">
+            <span class="font-semibold text-gray-900">画面に従ってチラシ画像をスキャン、アップロード</span>
+            <ul class="list-disc list-inside ml-6 space-y-1 text-gray-600">
+              <li>
+                ダミーチラシが必要な場合は
+                <a 
+                  href="https://drive.google.com/drive/folders/1RDwi6eWSzPTYtGoTjqdWlAFTYaBeaLQ-" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 underline"
+                >
+                  こちら
+                </a>
+              </li>
+            </ul>
+          </li>
+        </ol>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-6">
+          <p class="text-sm text-gray-700">
+            ※短時間に大量のOCRリクエストを行うと制限がかかる場合があります。その場合数分待つことで再度OCRが使用できるようになります。
+          </p>
+        </div>
+
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 my-6">
+          <p class="text-sm text-gray-700">
+            このプロジェクトはgoogle apiなどのサービスの無料枠を使用しており、コストの削減の面、またチラシは著作権の問題があるので、チラシの自動取得などは実装していません。
+          </p>
+        </div>
+
+        <!-- 管理者向け: データベース全削除ボタン -->
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 my-6">
+          <h3 class="font-bold text-red-800 mb-2">--------------------------------</h3>
+          <p class="text-sm text-gray-700 mb-3">
+            storesテーブル内のすべてのデータを削除します（関連するチラシ、商品データも削除されます）。この操作は取り消せません。
+          </p>
+          <button 
+            id="delete-all-stores-button"
+            class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          >
+            すべての店舗データを削除
+          </button>
+          <div id="delete-status" class="mt-2 text-sm hidden"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

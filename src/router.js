@@ -5,6 +5,7 @@ import { GenreStoresPage, attachGenreStoresPageEvents } from './pages/GenreStore
 import { StoreDetailPage, attachStoreDetailPageEvents } from './pages/StoreDetailPage.js';
 import { SearchResultsPage, attachSearchResultsPageEvents } from './pages/SearchResultsPage.js';
 import { AdminUploadPage, attachAdminUploadPageEvents } from './pages/AdminUploadPage.js';
+import { HowToUsePage, attachHowToUsePageEvents } from './pages/HowToUsePage.js';
 
 /**
  * アプリケーションのルート定義
@@ -38,6 +39,10 @@ const routes = {
     '/admin/upload': {
         render: AdminUploadPage,
         attachEvents: attachAdminUploadPageEvents
+    },
+    '/how-to-use': {
+        render: HowToUsePage,
+        attachEvents: attachHowToUsePageEvents
     }
 };
 
@@ -148,11 +153,15 @@ export async function renderPage(userLocation) {
         // 検索ページは検索クエリとフィルターオプションを受け取る
         if (window.location.hash.includes('/search')) {
             const query = queryParams.q || '';
+            // sortByが未指定または無効な値の場合、デフォルトは安い順
+            const sortBy = queryParams.sortBy && ['price-asc', 'price-desc', 'distance'].includes(queryParams.sortBy) 
+                ? queryParams.sortBy 
+                : 'price-asc';
             const filters = {
                 minPrice: parseInt(queryParams.minPrice) || 0,
                 maxPrice: parseInt(queryParams.maxPrice) || 10000,
                 maxDistance: parseInt(queryParams.maxDistance) || 10,
-                sortBy: queryParams.sortBy || 'price-asc'
+                sortBy: sortBy
             };
             html = await route.render(query, userLocation, filters);
         } else if (Object.keys(params).length > 0) {

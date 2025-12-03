@@ -46,7 +46,7 @@ function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
     return `
     <div class="space-y-8">
       <div class="hero-section">
-        <h1>🛒 チラシ検索</h1>
+        <h1>🛒 お得集めるくん</h1>
         <p>近くのお得な商品をすぐに見つけよう</p>
       </div>
       <section>

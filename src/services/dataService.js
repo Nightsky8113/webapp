@@ -303,6 +303,122 @@ export function clearCache() {
 }
 
 /**
+ * storesテーブル内のすべてのデータを削除する
+ * 注意: これは非常に危険な操作です。関連するflyers、items、favoritesなどのデータもCASCADE削除されます
+ * @returns {Promise<Object>} {success: boolean, deletedCount?: number, error?: string}
+ */
+export async function deleteAllStores() {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        // すべての店舗IDを取得
+        const { data: stores, error: fetchError } = await supabase
+            .from('stores')
+            .select('id');
+
+        if (fetchError) {
+            console.error('店舗取得エラー:', fetchError);
+            return {
+                success: false,
+                error: `店舗データの取得に失敗しました: ${fetchError.message || fetchError}`
+            };
+        }
+
+        if (!stores || stores.length === 0) {
+            return {
+                success: true,
+                deletedCount: 0
+            };
+        }
+
+        const storeIds = stores.map(store => store.id);
+        const deletedCount = storeIds.length;
+
+        console.log(`削除対象: ${deletedCount}件の店舗`);
+
+        // すべての店舗を削除（CASCADEにより関連データも自動削除）
+        // 個別に削除してエラーを詳細に確認
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (const storeId of storeIds) {
+            const { data, error: singleError } = await supabase
+                .from('stores')
+                .delete()
+                .eq('id', storeId)
+                .select(); // 削除されたレコードを返す
+            
+            if (singleError) {
+                console.error(`店舗ID ${storeId} の削除エラー:`, singleError);
+                console.error('エラー詳細:', JSON.stringify(singleError, null, 2));
+                errors.push(`ID ${storeId}: ${singleError.message || singleError.code || singleError}`);
+                failCount++;
+            } else {
+                console.log(`店舗ID ${storeId} を削除しました`);
+                successCount++;
+            }
+        }
+        
+        if (failCount > 0) {
+            const errorMessage = errors.length > 0 
+                ? errors.join(', ') 
+                : `${failCount}件の削除に失敗しました`;
+            
+            console.error('削除失敗の詳細:', {
+                successCount,
+                failCount,
+                errors
+            });
+            
+            return {
+                success: false,
+                error: `${successCount}件削除成功、${failCount}件削除失敗。エラー: ${errorMessage}。\n\n注意: SupabaseのRLS（Row Level Security）ポリシーでDELETE権限が設定されていない可能性があります。`
+            };
+        }
+
+        // 削除後の確認
+        const { data: remainingStores, count, error: verifyError } = await supabase
+            .from('stores')
+            .select('id', { count: 'exact', head: true });
+        
+        if (verifyError) {
+            console.warn('削除後の確認でエラー:', verifyError);
+        }
+        
+        if (count !== undefined && count > 0) {
+            console.warn(`削除後も${count}件の店舗が残っています`);
+            return {
+                success: false,
+                error: `一部の店舗が削除されませんでした。残り: ${count}件。\n\n注意: SupabaseのRLS（Row Level Security）ポリシーでDELETE権限が設定されていない可能性があります。\n\n解決方法: Supabase DashboardのSQL Editorで以下のマイグレーションを実行してください:\nsupabase/migrations/005_add_delete_policies.sql`
+            };
+        }
+
+        // キャッシュをクリア
+        clearCache();
+
+        console.log(`削除完了: ${deletedCount}件の店舗を削除しました`);
+
+        return {
+            success: true,
+            deletedCount: deletedCount
+        };
+    } catch (error) {
+        console.error('店舗削除エラー:', error);
+        console.error('エラースタック:', error.stack);
+        return {
+            success: false,
+            error: `店舗データの削除中にエラーが発生しました: ${error.message || error}`
+        };
+    }
+}
+
+/**
  * 指定されたチラシIDに関連する商品情報を削除する
  * @param {number} flyerId - チラシID
  * @returns {Promise<Object>} {success: boolean, error?: string}

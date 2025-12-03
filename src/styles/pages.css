@@ -651,6 +651,13 @@
   padding: 2rem;
 }
 
+/* 使い方ページ */
+.how-to-use-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
 .page-title {
   font-size: 2rem;
   font-weight: 700;
@@ -659,6 +666,13 @@
 }
 
 .upload-form-card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.content-card {
   background-color: white;
   border-radius: 0.75rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);

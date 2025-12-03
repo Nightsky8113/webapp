@@ -17,3 +17,4 @@ CREATE POLICY "Public update access" ON stores FOR UPDATE USING (true) WITH CHEC
 CREATE POLICY "Public update access" ON flyers FOR UPDATE USING (true) WITH CHECK (true);
 
 
+
