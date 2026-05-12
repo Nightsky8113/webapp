@@ -4,6 +4,7 @@
  */
 
 import { supabase, supabaseInitialized } from './supabase.js';
+import { reverseGeocode } from './geocodingService.js';
 
 // 取得したデータを5分間メモリにキャッシュして、データベースへのリクエストを削減
 let cache = {
@@ -299,6 +300,50 @@ export function clearCache() {
         items: null,
         genres: null,
         cacheTime: {}
+    };
+}
+
+/**
+ * 指定された店舗の住所を更新する
+ * @param {number|string} storeId
+ * @param {string} address
+ * @returns {Promise<Object>} {success: boolean, store?: Object, error?: string}
+ */
+export async function updateStoreAddress(storeId, address) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    if (!address || !address.trim()) {
+        return {
+            success: false,
+            error: '住所が指定されていません。'
+        };
+    }
+
+    const { data, error } = await supabase
+        .from('stores')
+        .update({ address: address.trim() })
+        .eq('id', parseInt(storeId))
+        .select()
+        .single();
+
+    if (error) {
+        console.error('住所更新エラー:', error);
+        return {
+            success: false,
+            error: error.message || '住所更新に失敗しました。'
+        };
+    }
+
+    clearCache();
+
+    return {
+        success: true,
+        store: data
     };
 }
 
@@ -654,6 +699,11 @@ export async function addStoreIfNotExists(storeData) {
         };
     }
 
+    let resolvedAddress = address && address.trim() !== '' ? address.trim() : null;
+    if (!resolvedAddress && latitude !== undefined && longitude !== undefined) {
+        resolvedAddress = await reverseGeocode(latitude, longitude);
+    }
+
     try {
         // 既存の店舗を取得（キャッシュを無視して最新データを取得）
         const existingStores = await getStores(true);
@@ -674,10 +724,10 @@ export async function addStoreIfNotExists(storeData) {
             });
             
             // 既存店舗の住所がNULLで、新しい住所が取得できている場合は住所を更新
-            if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && address && address.trim() !== '') {
+            if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && resolvedAddress) {
                 const { data: updatedStore, error: updateError } = await supabase
                     .from('stores')
-                    .update({ address: address.trim() })
+                    .update({ address: resolvedAddress })
                     .eq('id', existingStore.id)
                     .select()
                     .single();
@@ -717,7 +767,7 @@ export async function addStoreIfNotExists(storeData) {
             name: name,
             latitude: latitude,
             longitude: longitude,
-            address: address || null,
+            address: resolvedAddress || null,
             nearest_station: null,
             nearest_station_lat: null,
             nearest_station_lng: null,

@@ -1,4 +1,5 @@
-import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId } from '../services/dataService.js';
+import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId, updateStoreAddress } from '../services/dataService.js';
+import { reverseGeocode } from '../services/geocodingService.js';
 import { escapeHtml, formatPrice, formatDate, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
@@ -41,6 +42,21 @@ export async function StoreDetailPage(storeId, userLocation) {
         }
     }
 
+    // 住所が未設定の場合はNominatimで逆ジオコーディングしてDBに保存する
+    let storeAddress = store.address ? store.address.trim() : '';
+    if (!storeAddress && store.latitude && store.longitude) {
+        try {
+            const reversed = await reverseGeocode(store.latitude, store.longitude);
+            if (reversed) {
+                storeAddress = reversed;
+
+                await updateStoreAddress(storeId, storeAddress);
+            }
+        } catch (error) {
+            console.warn('住所の逆ジオコーディング中にエラーが発生しました:', error);
+        }
+    }
+
     // 距離表示は最大6件表示のページのみにするため、ここでは計算しない
 
     // チラシから商品を取得（最大3件）
@@ -72,7 +88,7 @@ export async function StoreDetailPage(storeId, userLocation) {
     }
 
     const storeName = escapeHtml(store.name);
-    const address = escapeHtml(store.address || '');
+    const address = escapeHtml(storeAddress || '');
     const station = escapeHtml(store.nearest_station || '');
     const imageUrl = flyer?.image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
     const updatedAt = flyer ? formatDate(flyer.updated_at) : '-';
