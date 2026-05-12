@@ -54,7 +54,7 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
     `;
 
     try {
-        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const url = `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`;
         const response = await fetch(url);
         
         if (!response.ok) {

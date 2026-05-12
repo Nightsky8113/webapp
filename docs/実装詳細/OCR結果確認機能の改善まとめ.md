@@ -124,3 +124,4 @@ function parsePrice(price) {
 - 見た目が整った状態になる
 
 
+

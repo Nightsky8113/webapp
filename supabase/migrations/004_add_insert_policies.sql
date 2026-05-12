@@ -18,3 +18,4 @@ CREATE POLICY "Public update access" ON flyers FOR UPDATE USING (true) WITH CHEC
 
 
 
+

@@ -10,3 +10,4 @@ CREATE POLICY "Public delete access" ON flyers FOR DELETE USING (true);
 -- itemsテーブルにDELETE権限を追加（必要に応じて）
 CREATE POLICY "Public delete access" ON items FOR DELETE USING (true);
 
+
