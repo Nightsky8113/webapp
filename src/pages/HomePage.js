@@ -73,7 +73,7 @@ function getHomePageHTMLFallback(todayFlyers, todayStoresHTML) {
           <div class="flex items-center justify-between mb-5">
             <h2 class="section-title">🆕 更新日時が今日のチラシ</h2>
           </div>
-          <div id="today-flyers-container">
+          <div id="today-flyers-container" class="stores-grid">
             ${todayStoresHTML}
           </div>
         </section>

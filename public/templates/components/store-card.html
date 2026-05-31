@@ -20,20 +20,18 @@
       </div>
       ${endif}
 
-      ${if:station}
+      ${if:showStation}
       <div class="store-card-meta-row">
         <span class="store-card-meta-icon">🚶</span>
-        <span>${station}${if:hasWalkMinutes}から徒歩${walkMinutes}分${endif}</span>
+        <span>${stationLine}</span>
       </div>
       ${endif}
 
-      ${if:isFromAPI}
-      ${if:address}
+      ${if:showAddress}
       <div class="store-card-meta-row">
         <span class="store-card-meta-icon">📍</span>
         <span>${address}</span>
       </div>
-      ${endif}
       ${endif}
 
       ${if:hasItemInfo}
@@ -46,12 +44,9 @@
       </div>
       ${endif}
 
-      ${if:isFromAPI}
-      ${if:!hasItemInfo}
+      ${if:showApiNote}
       <p class="store-card-api-note">※ 地図データのみ（商品情報なし）</p>
-      ${endif}
       ${endif}
     </div>
   </div>
 </div>
-

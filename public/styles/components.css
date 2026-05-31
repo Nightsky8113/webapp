@@ -157,14 +157,28 @@
   background-color: #f3f4f6;
 }
 
-.store-card-flyer {
+.store-card-flyer,
+#stores-container .store-card img,
+#today-flyers-container .store-card img {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
   object-position: center;
   display: block;
+}
+
+/* テンプレート崩れ時のフォールバック（img が wrap 外に出た場合） */
+#stores-container .store-card > img,
+#today-flyers-container .store-card > img {
+  position: static;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 4 / 3;
+  object-fit: cover !important;
 }
 
 .store-card-badge {

@@ -148,7 +148,7 @@ function getGenreStoresPageHTMLFallback(genreName, icon, storesHTML, storesCount
       <div class="info-box blue">
         <p>📍 現在地から5km以内の店舗を距離順に表示しています（${storesCount}件）</p>
       </div>
-      <div id="stores-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${storesHTML}</div>
+      <ul id="stores-list" class="stores-list">${storesHTML}</ul>
       ${storesCount === 0 ? `
         <div class="empty-state">
           <div class="empty-icon">🔍</div>

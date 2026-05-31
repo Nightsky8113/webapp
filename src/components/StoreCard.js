@@ -1,5 +1,14 @@
 import { escapeHtml, formatPrice } from '../utils/helpers.js';
-import { loadAndRenderTemplate } from '../utils/template.js';
+import { loadTemplate, renderTemplate } from '../utils/template.js';
+
+let storeCardTemplateCache = null;
+
+async function renderStoreCardTemplate(data) {
+    if (!storeCardTemplateCache) {
+        storeCardTemplateCache = await loadTemplate('/templates/components/store-card.html');
+    }
+    return renderTemplate(storeCardTemplateCache, data);
+}
 import { getWalkingTime } from '../services/walkingTimeService.js';
 import { isExternalStore, toValidStoreId } from '../utils/storeHelpers.js';
 import { MAX_WALKING_TIME_TIMEOUT } from '../utils/constants.js';
@@ -41,25 +50,33 @@ export async function StoreCard(store, flyer, distance, options = {}) {
         }
     }
 
+    const hasItemInfo = Boolean(
+        itemName && itemPrice && itemName.trim() !== '' && itemPrice.trim() !== ''
+    );
+    const address = store.address ? escapeHtml(store.address) : '';
+    let stationLine = station;
+    if (station && walkMinutes != null) {
+        stationLine = `${station}から徒歩${walkMinutes}分`;
+    }
+
     const templateData = {
-        id: String(store.id), // テンプレートで確実に文字列として扱われるようにする
+        id: String(store.id),
         storeName: storeName,
         thumbnailUrl: thumbnailUrl,
-        imageUrl: imageUrl,
         showDistance: distance !== undefined,
         distanceText: distanceText,
-        station: station,
-        walkMinutes: walkMinutes || null,
-        hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
-        itemName: itemName || '', // nullの場合は空文字列にする
-        itemPrice: itemPrice || '', // nullの場合は空文字列にする
-        hasItemInfo: itemName && itemPrice && itemName.trim() !== '' && itemPrice.trim() !== '', // null値または空文字列のチェック
-        isFromAPI: isFromAPI,
-        address: store.address || ''
+        showStation: Boolean(station),
+        stationLine: stationLine,
+        showAddress: isFromAPI && Boolean(address),
+        address: address,
+        hasItemInfo: hasItemInfo,
+        itemName: itemName || '',
+        itemPrice: itemPrice || '',
+        showApiNote: isFromAPI && !hasItemInfo
     };
 
     try {
-        const renderedHTML = await loadAndRenderTemplate('/templates/components/store-card.html', templateData);
+        const renderedHTML = await renderStoreCardTemplate(templateData);
         // テンプレートタグが残っている場合は、フォールバックを使用
         if (renderedHTML.includes('${if:') || renderedHTML.includes('${endif}')) {
             return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
