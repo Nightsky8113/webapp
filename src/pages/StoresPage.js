@@ -75,7 +75,7 @@ function getStoresPageHTMLFallback(storesHTML, storesCount) {
         <p>現在地から近い順に最大6件の店舗を表示しています</p>
       </div>
       <div id="stores-map" class="map-container"></div>
-      <div id="stores-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${storesHTML}</div>
+      <div id="stores-container">${storesHTML}</div>
       ${storesCount === 0 ? `<div class="empty-state"><div class="empty-icon">🏪</div><p class="empty-text">近くに店舗が見つかりませんでした</p><p class="text-gray-400 text-sm mt-2"><a href="#/store/register" class="text-blue-600">店舗の方はこちらから登録</a></p></div>` : ''}
     </div>
   `;

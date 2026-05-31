@@ -77,39 +77,32 @@ export async function StoreCard(store, flyer, distance, options = {}) {
 function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, storeId, distance) {
     return `
     <div class="store-card" data-store-id="${storeId}">
-      <div class="relative">
-        <img 
-          src="${thumbnailUrl}" 
-          alt="${storeName}のチラシ"
-          class="w-full h-48 object-cover cursor-pointer"
-          loading="lazy"
-        />
-        <div class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
-          NEW
-        </div>
+      <div class="store-card-flyer-wrap">
+        <img src="${thumbnailUrl}" alt="${storeName}のチラシ" class="store-card-flyer" loading="lazy" />
+        <div class="store-card-badge">NEW</div>
       </div>
-      <div class="p-5">
-        <h3 class="font-bold text-xl mb-4 text-gray-800">${storeName}</h3>
-        <div class="space-y-3 text-sm text-gray-600 mb-4">
+      <div class="store-card-body">
+        <h3 class="store-card-title">${storeName}</h3>
+        <div class="store-card-meta">
           ${distance !== undefined ? `
-          <div class="flex items-center gap-2">
-            <span class="text-xl">📍</span>
-            <span class="font-medium">現在地から ${distanceText}</span>
+          <div class="store-card-meta-row">
+            <span class="store-card-meta-icon">📍</span>
+            <span>現在地から ${distanceText}</span>
           </div>
           ` : ''}
           ${station ? `
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🚶</span>
+          <div class="store-card-meta-row">
+            <span class="store-card-meta-icon">🚶</span>
             <span>${station}${walkMinutes ? `から徒歩${walkMinutes}分` : ''}</span>
           </div>
           ` : ''}
           ${itemName && itemPrice ? `
           <div class="item-highlight">
             <div class="flex items-start gap-2">
-              <span class="text-xl">🏷️</span>
-              <div class="flex-1">
-                <div class="text-gray-700 font-medium text-base mb-1">${itemName}</div>
-                <div class="text-red-600 font-bold text-xl">${itemPrice}</div>
+              <span class="store-card-meta-icon">🏷️</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-gray-700 font-medium text-sm mb-0.5">${itemName}</div>
+                <div class="store-card-price">${itemPrice}</div>
               </div>
             </div>
           </div>

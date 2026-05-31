@@ -22,7 +22,7 @@ ${if:hasContent}
   <!-- 店舗情報カード -->
   <div class="store-detail-card" data-store-id="${storeId}">
     <!-- チラシ画像 -->
-    <div class="relative">
+    <div class="relative store-detail-flyer-wrap">
       <a 
         href="${imageUrl}" 
         data-lightbox="store-detail-flyer" 
@@ -32,7 +32,7 @@ ${if:hasContent}
         <img 
           src="${imageUrl}"
           alt="${storeName}のチラシ"
-          class="w-full h-80 object-cover"
+          class="store-detail-flyer"
           loading="lazy"
         />
       </a>
@@ -101,7 +101,7 @@ ${if:hasContent}
         <span>🗺️</span>
         店舗の位置
       </h2>
-      <div id="store-detail-map" class="w-full h-96 rounded-lg overflow-hidden border-2 border-gray-200"></div>
+      <div id="store-detail-map" class="rounded-lg overflow-hidden border border-gray-200"></div>
     </div>
   </div>
   ${endif}

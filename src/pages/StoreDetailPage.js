@@ -149,14 +149,14 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, station, wa
         <button id="back-button" class="btn-back"><span class="text-lg">←</span><span>戻る</span></button>
       </div>
       <div class="store-detail-card" data-store-id="${storeId}">
-        <div class="relative">
+        <div class="relative store-detail-flyer-wrap">
           <a 
             href="${imageUrl}" 
             data-lightbox="store-detail-flyer" 
             data-title="${storeName}のチラシ"
             class="block cursor-pointer"
           >
-            <img src="${imageUrl}" alt="${storeName}のチラシ" class="w-full h-80 object-cover" />
+            <img src="${imageUrl}" alt="${storeName}のチラシ" class="store-detail-flyer" />
           </a>
           <div class="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-md">
             <span class="text-sm text-gray-600">更新日: ${updatedAt}</span>
@@ -199,7 +199,7 @@ function getStoreDetailPageHTMLFallback(storeId, storeName, address, station, wa
             <span>🗺️</span>
             店舗の位置
           </h2>
-          <div id="store-detail-map" class="w-full h-96 rounded-lg overflow-hidden border-2 border-gray-200"></div>
+          <div id="store-detail-map" class="rounded-lg overflow-hidden border border-gray-200"></div>
         </div>
       </div>
       ` : ''}
