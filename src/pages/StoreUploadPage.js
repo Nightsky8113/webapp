@@ -1,5 +1,6 @@
 import { getStoreAccount, getAuthRequiredHTML, attachAuthRequiredEvents, signOutStore } from '../services/storeAuthService.js';
 import { uploadAndSaveFlyer } from '../services/storageService.js';
+import { escapeHtml } from '../utils/helpers.js';
 import { showImagePreview, showUploadStatus, resetUploadPreview } from '../utils/uploadUi.js';
 
 /**
