@@ -10,8 +10,9 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 # Supabase Anon Key（公開キー）
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 
-# 店舗ログイン用の内部メールドメイン（店舗には表示されない）
-# VITE_STORE_AUTH_EMAIL_DOMAIN=flyer-store.auth
+# 店舗ログイン用の内部メールドメイン（店舗には表示されない。Supabaseが受理する形式を使う）
+# 例: example.com → store-556366@example.com
+# VITE_STORE_AUTH_EMAIL_DOMAIN=example.com
 
 # ============================================
 # 外部API設定（OCR処理用）

@@ -5,14 +5,15 @@
 
 import { supabase, supabaseInitialized } from './supabase.js';
 
-const AUTH_EMAIL_DOMAIN = import.meta.env.VITE_STORE_AUTH_EMAIL_DOMAIN || 'flyer-store.auth';
+// Supabase Auth が受理する形式（.auth 等の独自TLDは invalid になる）
+const AUTH_EMAIL_DOMAIN = import.meta.env.VITE_STORE_AUTH_EMAIL_DOMAIN || 'example.com';
 
 /**
  * ログインIDから Supabase Auth 用の内部メールアドレスを生成する
  */
 export function loginIdToAuthEmail(loginId) {
     const id = String(loginId).replace(/\D/g, '');
-    return `store.${id}@${AUTH_EMAIL_DOMAIN}`;
+    return `store-${id}@${AUTH_EMAIL_DOMAIN}`;
 }
 
 /**
