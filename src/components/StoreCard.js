@@ -97,13 +97,11 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
           </div>
           ` : ''}
           ${itemName && itemPrice ? `
-          <div class="item-highlight">
-            <div class="flex items-start gap-2">
-              <span class="store-card-meta-icon">🏷️</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-gray-700 font-medium text-sm mb-0.5">${itemName}</div>
-                <div class="store-card-price">${itemPrice}</div>
-              </div>
+          <div class="item-highlight store-card-product">
+            <span class="store-card-meta-icon">🏷️</span>
+            <div class="store-card-product-text">
+              <div class="store-card-item-name">${itemName}</div>
+              <div class="store-card-price">${itemPrice}</div>
             </div>
           </div>
           ` : ''}
