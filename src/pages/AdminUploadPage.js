@@ -1,8 +1,8 @@
 import { getStores } from '../services/dataService.js';
-import { uploadAndSaveFlyer } from '../services/storageService.js';
 import { escapeHtml } from '../utils/helpers.js';
+import { submitFlyerUpload } from '../utils/flyerUploadSubmit.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
-import { showImagePreview, showUploadStatus, resetUploadPreview } from '../utils/uploadUi.js';
+import { showImagePreview, showUploadStatus } from '../utils/uploadUi.js';
 
 /**
  * 管理者向けチラシ画像アップロードページのコンテンツを生成する
@@ -79,6 +79,14 @@ function getAdminUploadPageHTMLFallback(storeOptionsHTML, storesCount) {
               <p class="form-help">対応形式: JPEG, PNG, WebP, GIF / 最大サイズ: 50MB</p>
             </div>
 
+            <div class="form-group">
+              <label class="form-checkbox">
+                <input type="checkbox" id="enable-ocr" name="enableOCR" />
+                <span class="ml-2">OCR処理を実行する（商品情報を自動抽出）</span>
+              </label>
+              <p class="form-help">チェックすると画像から商品情報を抽出します（1〜2分かかる場合があります）</p>
+            </div>
+
             <div id="preview-area" class="preview-area hidden"></div>
 
             <div id="upload-status" class="upload-status hidden"></div>
@@ -140,45 +148,17 @@ export async function attachAdminUploadPageEvents() {
                 return;
             }
 
-            if (uploadButton) {
-                uploadButton.disabled = true;
-                uploadButton.textContent = 'アップロード中...';
-            }
+            const enableOcr = document.getElementById('enable-ocr')?.checked === true;
 
-            showUploadStatus(uploadStatus, 'アップロード中...', 'loading');
-
-            try {
-                const result = await uploadAndSaveFlyer(file, storeId, {
-                    is_latest: true,
-                    ocr_done: false
-                });
-
-                if (result.success) {
-                    showUploadStatus(uploadStatus, `✅ アップロード成功！チラシID: ${result.flyer.id}`, 'success');
-                    
-                    uploadForm.reset();
-                    if (previewArea) {
-                        previewArea.classList.add('hidden');
-                        previewArea.innerHTML = '';
-                    }
-
-                    setTimeout(() => {
-                        if (uploadStatus) {
-                            uploadStatus.classList.add('hidden');
-                        }
-                    }, 3000);
-                } else {
-                    showUploadStatus(uploadStatus, `❌ エラー: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('アップロードエラー:', error);
-                showUploadStatus(uploadStatus, `❌ 予期しないエラーが発生しました: ${error.message}`, 'error');
-            } finally {
-                if (uploadButton) {
-                    uploadButton.disabled = false;
-                    uploadButton.textContent = 'アップロード';
-                }
-            }
+            await submitFlyerUpload({
+                file,
+                storeId,
+                enableOcr,
+                uploadStatus,
+                uploadButton,
+                uploadForm,
+                previewArea
+            });
         });
     }
 }
