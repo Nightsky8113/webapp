@@ -4,7 +4,10 @@
 
 ### 001_initial.sql
 初期スキーマの作成
-- テーブル定義（genres, stores, flyers, items, favorites, search_history）
+- テーブル定義（genres, stores, flyers, items, favorites, search_history, store_accounts）
+- 004: stores の OSM 連携カラム、store_accounts
+- 005: 店舗認証用 RLS と Storage ポリシー
+- 006: store_accounts.login_id（6桁の店舗ログインID）
 - インデックス作成
 - RLS（Row Level Security）ポリシー設定
 - updated_at自動更新トリガー

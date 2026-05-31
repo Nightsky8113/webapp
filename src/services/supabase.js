@@ -19,7 +19,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
     try {
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
-                persistSession: false
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true
             }
         });
         supabaseInitialized = true;
@@ -46,6 +48,12 @@ if (!supabaseInitialized) {
                 list: () => Promise.resolve({ data: [], error: { message: 'Supabase not initialized' } }),
                 getPublicUrl: () => ({ data: { publicUrl: '' } })
             })
+        },
+        auth: {
+            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+            signInWithPassword: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not initialized' } }),
+            signUp: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase not initialized' } }),
+            signOut: () => Promise.resolve({ error: null })
         }
     };
 }

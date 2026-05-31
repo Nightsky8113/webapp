@@ -4,7 +4,9 @@ import { GenrePage, attachGenrePageEvents } from './pages/GenrePage.js';
 import { GenreStoresPage, attachGenreStoresPageEvents } from './pages/GenreStoresPage.js';
 import { StoreDetailPage, attachStoreDetailPageEvents } from './pages/StoreDetailPage.js';
 import { SearchResultsPage, attachSearchResultsPageEvents } from './pages/SearchResultsPage.js';
-import { AdminUploadPage, attachAdminUploadPageEvents } from './pages/AdminUploadPage.js';
+import { StoreUploadPage, attachStoreUploadPageEvents } from './pages/StoreUploadPage.js';
+import { StoreRegisterPage, attachStoreRegisterPageEvents } from './pages/StoreRegisterPage.js';
+import { StoreLoginPage, attachStoreLoginPageEvents } from './pages/StoreLoginPage.js';
 
 /**
  * アプリケーションのルート定義
@@ -35,9 +37,21 @@ const routes = {
         render: SearchResultsPage,
         attachEvents: attachSearchResultsPageEvents
     },
+    '/store/upload': {
+        render: StoreUploadPage,
+        attachEvents: attachStoreUploadPageEvents
+    },
+    '/store/register': {
+        render: StoreRegisterPage,
+        attachEvents: attachStoreRegisterPageEvents
+    },
+    '/store/login': {
+        render: StoreLoginPage,
+        attachEvents: attachStoreLoginPageEvents
+    },
     '/admin/upload': {
-        render: AdminUploadPage,
-        attachEvents: attachAdminUploadPageEvents
+        render: StoreUploadPage,
+        attachEvents: attachStoreUploadPageEvents
     }
 };
 

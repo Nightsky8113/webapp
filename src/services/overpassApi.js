@@ -79,13 +79,17 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
 
             const distance = calculateDistance(lat, lng, latitude, longitude);
 
+            const osmType = element.type || 'node';
+
             stores.push({
-                id: `overpass_${element.id}`,
+                id: `overpass_${osmType}_${element.id}`,
+                osm_type: osmType,
+                osm_id: element.id,
                 name: element.tags?.name || '名前なしスーパー',
                 latitude: latitude,
                 longitude: longitude,
-                address: element.tags?.['addr:full'] || 
-                         element.tags?.['addr:street'] || 
+                address: element.tags?.['addr:full'] ||
+                         element.tags?.['addr:street'] ||
                          element.tags?.['addr:city'] || '',
                 distance: distance,
                 is_from_api: true,

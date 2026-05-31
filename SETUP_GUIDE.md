@@ -42,6 +42,16 @@ npm run dev
 
 ブラウザで `http://localhost:3000` を開きます。
 
+### 店舗向け（チラシアップロード）
+
+1. Supabase Dashboard で `004`〜`006` のマイグレーション SQL を順に実行
+2. Authentication で **Email** プロバイダを有効化（店舗にはメール入力なし。内部認証用）
+3. Authentication → Providers → Email で **Confirm email をオフ**（登録直後にログイン可能にする）
+4. `#/store/register` で OSM 上の自店を選ぶと **6桁の店舗ログインID** と **初期パスワード** が表示される（必ず控える）
+5. 次回以降は `#/store/login` でログインID + パスワード、`#/store/upload` でチラシアップロード
+
+**注意**: Live Server ではなく `npm run dev`（Vite）で起動してください。
+
 ---
 
 ## 🗄️ Supabaseのセットアップ
