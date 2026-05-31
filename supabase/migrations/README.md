@@ -26,13 +26,29 @@ Supabase Storageポリシー設定（チラシ画像保存用）
 
 **注意**: このマイグレーションを実行する前に、Supabase Dashboardで`flyer-images`バケットを作成する必要があります。
 
+### 004_add_insert_policies.sql
+INSERT/UPDATE権限の追加（店舗自動追加機能用）
+- `stores`テーブルにINSERT/UPDATE権限を追加
+- `flyers`テーブルにINSERT/UPDATE権限を追加
+- `items`テーブルにINSERT/UPDATE権限を追加
+- 位置情報から探した店舗をDBに自動追加する機能のために必要
+
+### 005_add_delete_policies.sql
+DELETE権限の追加（管理者向けデータ削除機能用）
+- `stores`テーブルにDELETE権限を追加
+- `flyers`テーブルにDELETE権限を追加
+- `items`テーブルにDELETE権限を追加
+- 使い方ページの「すべての店舗データを削除」機能を使用する場合に必要
+
 ## 実行順序
 
 マイグレーションファイルは番号順に実行してください：
 
 1. `001_initial.sql` - まずこれを実行
 2. `002_update_store_summary.sql` - 次にこれを実行
-3. `003_storage_setup.sql` - 最後にこれを実行（Storageバケット作成後）
+3. `003_storage_setup.sql` - Storageバケット作成後に実行
+4. `004_add_insert_policies.sql` - 店舗自動追加機能を使用する場合に実行
+5. `005_add_delete_policies.sql` - 管理者向けデータ削除機能を使用する場合に実行
 
 ## Supabaseでの実行方法
 
@@ -47,6 +63,8 @@ Supabase Storageポリシー設定（チラシ画像保存用）
    - Storage → New bucket → `flyer-images`を作成
    - 詳細は`STORAGE_SETUP_GUIDE.md`を参照
 7. `003_storage_setup.sql`の内容をコピーして実行（Storageバケット作成後）
+8. `004_add_insert_policies.sql`の内容をコピーして実行（店舗自動追加機能を使用する場合）
+9. `005_add_delete_policies.sql`の内容をコピーして実行（管理者向けデータ削除機能を使用する場合）
 
 ### 方法2: Supabase CLI
 

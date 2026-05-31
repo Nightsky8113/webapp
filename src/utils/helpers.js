@@ -114,3 +114,14 @@ export function parseHash() {
 
     return { path, params };
 }
+
+/**
+ * URLハッシュからクエリパラメータを取得する
+ * @param {string} hash - ハッシュ文字列（例: '#/store/1?lat=35.6812&lng=139.7671'）
+ * @returns {URLSearchParams} クエリパラメータオブジェクト
+ */
+export function getQueryParamsFromHash(hash = null) {
+    const hashString = hash || window.location.hash;
+    const queryString = hashString.split('?')[1] || '';
+    return new URLSearchParams(queryString);
+}

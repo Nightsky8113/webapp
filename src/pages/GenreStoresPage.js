@@ -1,6 +1,6 @@
 import { getStoresByGenreId, getGenreById, getFlyers, getItemsByGenreId } from '../services/dataService.js';
 import { filterByDistance, sortByDistance } from '../utils/distance.js';
-import { escapeHtml, formatPrice } from '../utils/helpers.js';
+import { escapeHtml, formatPrice, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { initMap, addStoreMarker, clearMarkers, fitBounds } from '../utils/map.js';
 
@@ -21,7 +21,7 @@ export async function GenreStoresPage(genreId, userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -41,7 +41,7 @@ export async function GenreStoresPage(genreId, userLocation) {
             hasContent: false
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+            return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
         } catch (error) {
             return `
             <div class="empty-state">
@@ -89,7 +89,7 @@ export async function GenreStoresPage(genreId, userLocation) {
         };
 
         try {
-            return await loadAndRenderTemplate('/src/templates/components/genre-store-item.html', itemData);
+            return await loadAndRenderTemplate('/templates/components/genre-store-item.html', itemData);
         } catch (error) {
             return `
             <li class="genre-store-item" data-store-id="${store.id}">
@@ -126,7 +126,7 @@ export async function GenreStoresPage(genreId, userLocation) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/genre-stores-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/genre-stores-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getGenreStoresPageHTMLFallback(genreName, icon, storesHTML, storesWithDistance.length);
@@ -172,59 +172,62 @@ export async function attachGenreStoresPageEvents() {
         });
     }
 
-    const mapContainer = document.getElementById('genre-stores-map');
-    if (mapContainer) {
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-        const lat = parseFloat(urlParams.get('lat'));
-        const lng = parseFloat(urlParams.get('lng'));
+    // DOM描画完了後に地図を初期化
+    setTimeout(async () => {
+        const mapContainer = document.getElementById('genre-stores-map');
+        if (mapContainer) {
+            const urlParams = getQueryParamsFromHash();
+            const lat = parseFloat(urlParams.get('lat'));
+            const lng = parseFloat(urlParams.get('lng'));
 
-        if (lat && lng) {
-            initMap('genre-stores-map', lat, lng);
+            if (lat && lng) {
+                initMap('genre-stores-map', lat, lng);
 
-            const { getStoresByGenreId, getFlyers, getItemsByGenreId } = await import('../services/dataService.js');
-            const { filterByDistance, sortByDistance } = await import('../utils/distance.js');
-            const { formatPrice } = await import('../utils/helpers.js');
+                const { getStoresByGenreId, getFlyers, getItemsByGenreId } = await import('../services/dataService.js');
+                const { filterByDistance, sortByDistance } = await import('../utils/distance.js');
+                const { escapeHtml, formatPrice } = await import('../utils/helpers.js');
 
-            const hash = window.location.hash;
-            const genreIdMatch = hash.match(/\/genre\/(\d+)\/stores/);
-            if (genreIdMatch) {
-                const genreId = parseInt(genreIdMatch[1]);
-                const stores = await getStoresByGenreId(genreId);
-                const flyers = await getFlyers();
-                const items = await getItemsByGenreId(genreId);
+                const hash = window.location.hash;
+                const genreIdMatch = hash.match(/\/genre\/(\d+)\/stores/);
+                if (genreIdMatch) {
+                    const genreId = parseInt(genreIdMatch[1]);
+                    const stores = await getStoresByGenreId(genreId);
+                    const flyers = await getFlyers();
+                    const items = await getItemsByGenreId(genreId);
 
-                const userLocation = { lat, lng };
-                const nearbyStores = filterByDistance(stores, userLocation, 5);
-                const storesWithDistance = sortByDistance(nearbyStores, userLocation);
+                    const userLocation = { lat, lng };
+                    const nearbyStores = filterByDistance(stores, userLocation, 5);
+                    const storesWithDistance = sortByDistance(nearbyStores, userLocation);
 
-                clearMarkers();
+                    clearMarkers();
 
-                storesWithDistance.forEach(store => {
-                    const storeFlyer = flyers.find(f => f.store_id === store.id && f.is_latest);
-                    if (!storeFlyer) return;
+                    storesWithDistance.forEach(store => {
+                        const storeFlyer = flyers.find(f => f.store_id === store.id && f.is_latest);
+                        if (!storeFlyer) return;
 
-                    const storeItems = items.filter(item => item.flyer_id === storeFlyer.id);
-                    if (storeItems.length === 0) return;
+                        const storeItems = items.filter(item => item.flyer_id === storeFlyer.id);
+                        if (storeItems.length === 0) return;
 
-                    const cheapestItem = storeItems.reduce((prev, curr) => 
-                        prev.price < curr.price ? prev : curr
-                    );
+                        const cheapestItem = storeItems.reduce((prev, curr) => 
+                            prev.price < curr.price ? prev : curr
+                        );
 
-                    const storeNameEscaped = escapeHtml(store.name);
-                    const itemNameEscaped = escapeHtml(cheapestItem.name);
-                    const popupContent = `
-                        <b>${storeNameEscaped}</b><br>
-                        ${itemNameEscaped} → ${formatPrice(cheapestItem.price)}<br>
-                        ${Math.floor(store.distance * 1000)}m
-                    `;
+                        const storeNameEscaped = escapeHtml(store.name);
+                        const itemNameEscaped = escapeHtml(cheapestItem.name);
+                        const popupContent = `
+                            <b>${storeNameEscaped}</b><br>
+                            ${itemNameEscaped} → ${formatPrice(cheapestItem.price)}<br>
+                            ${Math.floor(store.distance * 1000)}m
+                        `;
 
-                    addStoreMarker(store.latitude, store.longitude, store.name, popupContent);
-                });
+                        addStoreMarker(store.latitude, store.longitude, store.name, popupContent);
+                    });
 
-                fitBounds();
+                    fitBounds();
+                }
             }
         }
-    }
+    }, 100);
 
     const storesList = document.getElementById('stores-list');
     if (storesList) {
@@ -232,7 +235,16 @@ export async function attachGenreStoresPageEvents() {
             const storeItem = e.target.closest('.genre-store-item');
             if (storeItem) {
                 const storeId = parseInt(storeItem.dataset.storeId);
-                window.location.hash = `/store/${storeId}`;
+                // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
+                const urlParams = getQueryParamsFromHash();
+                const lat = urlParams.get('lat');
+                const lng = urlParams.get('lng');
+                
+                if (lat && lng) {
+                    window.location.hash = `/store/${storeId}?lat=${lat}&lng=${lng}`;
+                } else {
+                    window.location.hash = `/store/${storeId}`;
+                }
             }
         });
     }

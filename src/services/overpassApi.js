@@ -40,7 +40,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
     const cacheKey = getCacheKey(lat, lng, radius);
     const cached = cache[cacheKey];
     if (cached && Date.now() - cached.time < CACHE_DURATION) {
-        console.log('Overpass API: キャッシュから店舗データを取得');
         return cached.data;
     }
 
@@ -51,12 +50,11 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
             way["shop"="supermarket"](around:${radius},${lat},${lng});
             relation["shop"="supermarket"](around:${radius},${lat},${lng});
         );
-        out center;
+        out center tags;
     `;
 
     try {
-        console.log('Overpass API: 店舗を検索中...', { lat, lng, radius });
-        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const url = `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`;
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -66,7 +64,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
         const data = await response.json();
 
         if (!data.elements || data.elements.length === 0) {
-            console.log('Overpass API: 店舗が見つかりませんでした');
             return [];
         }
 
@@ -78,8 +75,47 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
             if (!latitude || !longitude) return;
 
             const distance = calculateDistance(lat, lng, latitude, longitude);
-
             const osmType = element.type || 'node';
+
+            // 住所を組み立て（優先順位: addr:full > 組み立てた住所 > addr:street > addr:city）
+            let address = '';
+            if (element.tags?.['addr:full']) {
+                address = element.tags['addr:full'];
+            } else {
+                const addressParts = [];
+                if (element.tags?.['addr:postcode']) {
+                    addressParts.push(`〒${element.tags['addr:postcode']}`);
+                }
+                if (element.tags?.['addr:prefecture']) {
+                    addressParts.push(element.tags['addr:prefecture']);
+                }
+                if (element.tags?.['addr:city']) {
+                    addressParts.push(element.tags['addr:city']);
+                }
+                if (element.tags?.['addr:suburb'] || element.tags?.['addr:neighbourhood']) {
+                    addressParts.push(element.tags['addr:suburb'] || element.tags['addr:neighbourhood']);
+                }
+                if (element.tags?.['addr:quarter'] || element.tags?.['addr:block_number']) {
+                    addressParts.push(element.tags['addr:quarter'] || element.tags['addr:block_number']);
+                }
+                if (element.tags?.['addr:street']) {
+                    addressParts.push(element.tags['addr:street']);
+                }
+                if (element.tags?.['addr:housenumber']) {
+                    addressParts.push(element.tags['addr:housenumber']);
+                }
+                if (element.tags?.['addr:housename']) {
+                    addressParts.push(element.tags['addr:housename']);
+                }
+
+                if (addressParts.length > 0) {
+                    address = addressParts.join(' ');
+                } else {
+                    address = element.tags?.['addr:street'] ||
+                             element.tags?.['addr:city'] ||
+                             '';
+                }
+            }
 
             stores.push({
                 id: `overpass_${osmType}_${element.id}`,
@@ -88,9 +124,7 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
                 name: element.tags?.name || '名前なしスーパー',
                 latitude: latitude,
                 longitude: longitude,
-                address: element.tags?.['addr:full'] ||
-                         element.tags?.['addr:street'] ||
-                         element.tags?.['addr:city'] || '',
+                address: address,
                 distance: distance,
                 is_from_api: true,
                 api_provider: 'overpass',
@@ -99,8 +133,6 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
         });
 
         stores.sort((a, b) => a.distance - b.distance);
-
-        console.log(`Overpass API: ${stores.length}件の店舗を取得しました`);
 
         cache[cacheKey] = {
             data: stores,
@@ -121,4 +153,3 @@ export async function searchNearbyStores(lat, lng, radius = 2000) {
 export function clearCache() {
     cache = {};
 }
-

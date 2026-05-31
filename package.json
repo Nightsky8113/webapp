@@ -9,10 +9,10 @@
         "preview": "vite preview"
     },
     "devDependencies": {
-        "@unocss/vite": "^0.58.9",
+        "@unocss/vite": "^66.5.10-beta.1",
         "@vitejs/plugin-react": "^5.1.1",
-        "unocss": "^0.58.9",
-        "vite": "^5.0.0"
+        "unocss": "^66.5.10-beta.1",
+        "vite": "^7.2.6"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.86.0"

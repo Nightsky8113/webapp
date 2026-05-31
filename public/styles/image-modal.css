@@ -1,0 +1,118 @@
+/**
+ * 画像拡大モーダルのスタイル
+ * Vanilla JavaScriptで実装した画像拡大機能用のCSS
+ */
+
+/* モーダルコンテナ（非表示状態） */
+.image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+/* モーダル表示中 */
+.image-modal.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all;
+}
+
+/* オーバーレイ（背景） */
+.image-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    cursor: pointer;
+}
+
+/* モーダルコンテンツ */
+.image-modal-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 閉じるボタン */
+.image-modal-close {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10001;
+    line-height: 1;
+}
+
+.image-modal-close:hover {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+/* 画像 */
+.image-modal-image {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* 画像タイトル */
+.image-modal-title {
+    margin-top: 20px;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    max-width: 90vw;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .image-modal-close {
+        top: 10px;
+        right: 10px;
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .image-modal-image {
+        max-height: 80vh;
+    }
+    
+    .image-modal-title {
+        font-size: 16px;
+        margin-top: 15px;
+    }
+}
+
+
+

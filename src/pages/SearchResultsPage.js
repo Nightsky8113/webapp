@@ -2,7 +2,7 @@ import { getStores, getFlyers, getItems } from '../services/dataService.js';
 import { searchItems, filterByPrice, sortByPrice } from '../utils/search.js';
 import { sortByDistance } from '../utils/distance.js';
 import { StoreCard, attachStoreCardEvents } from '../components/StoreCard.js';
-import { escapeHtml } from '../utils/helpers.js';
+import { escapeHtml, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 
 /**
@@ -19,8 +19,11 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         minPrice = 0,
         maxPrice = 10000,
         maxDistance = 10,
-        sortBy = 'price-asc' // 'price-asc', 'price-desc', 'distance'
+        sortBy = 'price-asc' // 'price-asc', 'price-desc', 'distance' - デフォルトは安い順
     } = filters;
+    
+    // sortByが未指定または無効な値の場合、安い順に設定
+    const validSortBy = (sortBy && ['price-asc', 'price-desc', 'distance'].includes(sortBy)) ? sortBy : 'price-asc';
 
     // 商品を検索
     let searchResults = searchItems(items, query);
@@ -37,7 +40,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
 
     // ソート
     let sortedResults;
-    if (sortBy === 'distance') {
+    if (validSortBy === 'distance') {
         // 距離順（店舗ごとに距離を計算）
         const storesWithDistance = sortByDistance(
             stores.filter(s => resultsWithStore.some(r => r.store.id === s.id)),
@@ -51,7 +54,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         });
     } else {
         // 価格順
-        const order = sortBy === 'price-asc' ? 'asc' : 'desc';
+        const order = validSortBy === 'price-asc' ? 'asc' : 'desc';
         sortedResults = sortByPrice(resultsWithStore, order);
     }
 
@@ -72,7 +75,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
             storeId: item.store.id
         };
         try {
-            return await loadAndRenderTemplate('/src/templates/components/search-result-item.html', itemData);
+            return await loadAndRenderTemplate('/templates/components/search-result-item.html', itemData);
         } catch (error) {
             return `
             <div class="search-result-card">
@@ -85,7 +88,7 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
                     <div class="flex items-center gap-2"><span>📍</span><span>${itemData.distance} km</span></div>
                   </div>
                 </div>
-                <button class="btn-store-view" onclick="window.location.hash = '/store/${itemData.storeId}'">店舗を見る →</button>
+                <button class="btn-store-view" data-store-id="${itemData.storeId}">店舗を見る →</button>
               </div>
             </div>
           `;
@@ -101,9 +104,9 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
         minPrice: minPrice,
         maxPrice: maxPrice,
         maxDistance: maxDistance,
-        sortByPriceAscSelected: sortBy === 'price-asc' ? 'selected' : '',
-        sortByPriceDescSelected: sortBy === 'price-desc' ? 'selected' : '',
-        sortByDistanceSelected: sortBy === 'distance' ? 'selected' : '',
+        sortByPriceAscSelected: validSortBy === 'price-asc' ? 'selected' : '',
+        sortByPriceDescSelected: validSortBy === 'price-desc' ? 'selected' : '',
+        sortByDistanceSelected: validSortBy === 'distance' ? 'selected' : '',
         resultsCount: finalResults.length,
         resultsHTML: resultsHTML,
         noResults: finalResults.length === 0
@@ -111,10 +114,10 @@ export async function SearchResultsPage(query, userLocation, filters = {}) {
 
     // テンプレートを読み込んでレンダリング
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/search-results-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/search-results-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
-        return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, sortBy, finalResults.length, resultsHTML);
+        return getSearchResultsPageHTMLFallback(queryText, minPrice, maxPrice, maxDistance, validSortBy, finalResults.length, resultsHTML);
     }
 }
 
@@ -195,4 +198,24 @@ export function attachSearchResultsPageEvents(query) {
             window.location.hash = `/search?${params.toString()}`;
         });
     }
+
+    // 検索結果内の「店舗を見る」ボタンにイベントリスナーを追加
+    const storeViewButtons = document.querySelectorAll('.btn-store-view[data-store-id]');
+    storeViewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const storeId = button.getAttribute('data-store-id');
+            if (storeId) {
+                // URLから位置情報を取得して店舗詳細ページのURLに含める（存在する場合）
+                const urlParams = getQueryParamsFromHash();
+                const lat = urlParams.get('lat');
+                const lng = urlParams.get('lng');
+                
+                if (lat && lng) {
+                    window.location.hash = `/store/${storeId}?lat=${lat}&lng=${lng}`;
+                } else {
+                    window.location.hash = `/store/${storeId}`;
+                }
+            }
+        });
+    });
 }

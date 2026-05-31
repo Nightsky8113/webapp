@@ -172,7 +172,3 @@ function showStatus(statusElement, message, type) {
         statusElement.style.backgroundColor = '#dbeafe';
     }
 }
-
-/** @deprecated /store/upload を使用 */
-export const AdminUploadPage = StoreUploadPage;
-export const attachAdminUploadPageEvents = attachStoreUploadPageEvents;

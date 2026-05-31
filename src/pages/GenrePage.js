@@ -1,7 +1,7 @@
 import { getGenres } from '../services/dataService.js';
 import { GenreCard, attachGenreCardEvents } from '../components/GenreCard.js';
-import { debounce } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { getQueryParamsFromHash } from '../utils/helpers.js';
 
 /**
  * ジャンル選択ページのコンテンツを生成する
@@ -18,7 +18,7 @@ export async function GenrePage(userLocation) {
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/pages/genre-page.html', templateData);
+        return await loadAndRenderTemplate('/templates/pages/genre-page.html', templateData);
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getGenrePageHTMLFallback(genresHTML, genres.length);
@@ -64,7 +64,7 @@ function getGenrePageHTMLFallback(genresHTML, genresCount) {
 /**
  * ジャンル選択ページに必要なイベントハンドラーを設定する
  * 戻るボタン、商品検索入力、検索ボタン、ジャンルカードのクリックイベントを設定する
- * 商品検索は入力中の連続リクエストを防ぐためデバウンス処理を適用する
+ * 商品検索は検索ボタンのクリックまたはEnterキーを押したときのみ実行される
  */
 export function attachGenrePageEvents() {
     const backButton = document.getElementById('back-button');
@@ -80,7 +80,7 @@ export function attachGenrePageEvents() {
         }
 
         try {
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
             
@@ -98,15 +98,10 @@ export function attachGenrePageEvents() {
     };
 
     const searchInput = document.getElementById('product-search-input');
+    const searchButton = document.getElementById('search-button');
+    
     if (searchInput) {
-        const handleSearch = debounce(async (query) => {
-            await executeSearch(query);
-        }, 300);
-
-        searchInput.addEventListener('input', (e) => {
-            handleSearch(e.target.value);
-        });
-
+        // Enterキーで検索を実行
         searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 await executeSearch(searchInput.value);
@@ -114,7 +109,7 @@ export function attachGenrePageEvents() {
         });
     }
 
-    const searchButton = document.getElementById('search-button');
+    // 検索ボタンをクリックしたときのみ検索を実行
     if (searchButton && searchInput) {
         searchButton.addEventListener('click', async () => {
             await executeSearch(searchInput.value);
@@ -124,7 +119,7 @@ export function attachGenrePageEvents() {
     const genresContainer = document.getElementById('genres-container');
     if (genresContainer) {
         attachGenreCardEvents(genresContainer, async (genreId) => {
-            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            const urlParams = getQueryParamsFromHash();
             let lat = urlParams.get('lat');
             let lng = urlParams.get('lng');
             

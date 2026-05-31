@@ -36,6 +36,15 @@ export function initMap(containerId, lat, lng, zoom = 15) {
         return null;
     }
 
+    // 地図コンテナのサイズが0の場合は、少し待ってから再試行
+    if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
+        console.warn(`地図コンテナのサイズが0です。再試行します: ${containerId}`);
+        setTimeout(() => {
+            initMap(containerId, lat, lng, zoom);
+        }, 200);
+        return null;
+    }
+
     mapInstance = L.map(containerId).setView([lat, lng], zoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -54,6 +63,7 @@ export function initMap(containerId, lat, lng, zoom = 15) {
 /**
  * 地図上に店舗マーカーを追加する
  * マーカーをクリックするとポップアップで店舗情報を表示する
+ * popupContentにボタンが含まれる場合、data-store-id属性を使用してイベントリスナーを設定する
  */
 export function addStoreMarker(lat, lng, storeName, popupContent) {
     if (!mapInstance) {
@@ -63,7 +73,28 @@ export function addStoreMarker(lat, lng, storeName, popupContent) {
 
     const marker = L.marker([lat, lng])
         .addTo(mapInstance)
-        .bindPopup(popupContent);
+        .bindPopup(popupContent)
+        .on('popupopen', () => {
+            // ポップアップが開いたときに、ボタンにイベントリスナーを追加
+            const popup = marker.getPopup();
+            if (popup) {
+                const popupElement = popup.getElement();
+                if (popupElement) {
+                    const storeButton = popupElement.querySelector('[data-store-id]');
+                    if (storeButton) {
+                        const storeId = storeButton.getAttribute('data-store-id');
+                        if (storeId) {
+                            // 既存のイベントリスナーを削除してから追加（重複を防ぐ）
+                            const newButton = storeButton.cloneNode(true);
+                            storeButton.parentNode.replaceChild(newButton, storeButton);
+                            newButton.addEventListener('click', () => {
+                                window.location.hash = `/store/${storeId}`;
+                            });
+                        }
+                    }
+                }
+            }
+        });
 
     markers.push(marker);
     return marker;

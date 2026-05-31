@@ -1,5 +1,6 @@
 import { escapeHtml, formatPrice } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
+import { getWalkingTime } from '../services/walkingTimeService.js';
 
 /**
  * 店舗情報を表示するカードコンポーネントを生成する
@@ -10,34 +11,60 @@ export async function StoreCard(store, flyer, distance) {
     if (!store) return '';
 
     const storeName = escapeHtml(store.name);
-    const itemName = store.summary_best_item_name ? escapeHtml(store.summary_best_item_name) : null;
-    const itemPrice = store.summary_best_item_price ? formatPrice(store.summary_best_item_price) : null;
-    const thumbnailUrl = flyer?.thumbnail_url || 'https://via.placeholder.com/400x300?text=No+Image';
+    // null値や空文字列の場合は空文字列にする（「null」という文字列が表示されるのを防ぐ）
+    const itemName = store.summary_best_item_name && store.summary_best_item_name !== 'null' 
+        ? escapeHtml(store.summary_best_item_name) 
+        : '';
+    const itemPrice = store.summary_best_item_price && store.summary_best_item_price !== null && store.summary_best_item_price !== 'null'
+        ? formatPrice(store.summary_best_item_price) 
+        : '';
+    // プレースホルダー画像の代わりに、データURIを使用（ネットワークエラーを防ぐ）
+    const thumbnailUrl = flyer?.thumbnail_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
     const imageUrl = flyer?.image_url || thumbnailUrl;
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
-    const walkMinutes = store.summary_walk_minutes || null;
     const station = escapeHtml(store.nearest_station || '');
     const isFromAPI = store.is_from_api || false;
+    
+    // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
+    // 外部APIから取得した店舗はデータベースに存在しないため、徒歩時間を取得しない
+    // タイムアウトを設定して、長時間待機しないようにする
+    let walkMinutes = null;
+    if (!isFromAPI) {
+        try {
+            walkMinutes = await Promise.race([
+                getWalkingTime(store.id),
+                new Promise((resolve) => setTimeout(() => resolve(null), 2000)) // 2秒でタイムアウト
+            ]);
+        } catch (error) {
+            console.warn(`店舗 ${store.id} の徒歩時間取得エラー:`, error);
+            walkMinutes = null;
+        }
+    }
 
     const templateData = {
-        id: store.id,
+        id: String(store.id), // テンプレートで確実に文字列として扱われるようにする
         storeName: storeName,
         thumbnailUrl: thumbnailUrl,
         imageUrl: imageUrl,
         showDistance: distance !== undefined,
         distanceText: distanceText,
         station: station,
-        walkMinutes: walkMinutes,
-        itemName: itemName,
-        itemPrice: itemPrice,
-        hasItemInfo: itemName && itemPrice,
-        hasStationInfo: station && walkMinutes,
+        walkMinutes: walkMinutes || null,
+        hasWalkMinutes: walkMinutes !== null && walkMinutes !== undefined,
+        itemName: itemName || '', // nullの場合は空文字列にする
+        itemPrice: itemPrice || '', // nullの場合は空文字列にする
+        hasItemInfo: itemName && itemPrice && itemName.trim() !== '' && itemPrice.trim() !== '', // null値または空文字列のチェック
         isFromAPI: isFromAPI,
         address: store.address || ''
     };
 
     try {
-        return await loadAndRenderTemplate('/src/templates/components/store-card.html', templateData);
+        const renderedHTML = await loadAndRenderTemplate('/templates/components/store-card.html', templateData);
+        // テンプレートタグが残っている場合は、フォールバックを使用
+        if (renderedHTML.includes('${if:') || renderedHTML.includes('${endif}')) {
+            return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
+        }
+        return renderedHTML;
     } catch (error) {
         console.warn('テンプレート読み込み失敗、フォールバックを使用:', error);
         return getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceText, station, walkMinutes, itemName, itemPrice, store.id, distance);
@@ -70,10 +97,13 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
             <span class="font-medium">現在地から ${distanceText}</span>
           </div>
           ` : ''}
+          ${station ? `
           <div class="flex items-center gap-2">
             <span class="text-xl">🚶</span>
-            <span>${station}から徒歩${walkMinutes}分</span>
+            <span>${station}${walkMinutes ? `から徒歩${walkMinutes}分` : ''}</span>
           </div>
+          ` : ''}
+          ${itemName && itemPrice ? `
           <div class="item-highlight">
             <div class="flex items-start gap-2">
               <span class="text-xl">🏷️</span>
@@ -83,6 +113,7 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
               </div>
             </div>
           </div>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -94,15 +125,34 @@ function getStoreCardHTMLFallback(storeName, thumbnailUrl, imageUrl, distanceTex
  * 動的に追加されるカードにも対応できるよう、コンテナ要素で一括管理する
  */
 export function attachStoreCardEvents(container, onCardClick) {
-    if (!container) return;
+    if (!container) {
+        console.error('attachStoreCardEvents: コンテナが見つかりません');
+        return;
+    }
 
-    container.addEventListener('click', (e) => {
-        const card = e.target.closest('[data-store-id]');
-        if (card) {
-            const storeId = parseInt(card.dataset.storeId);
+    // 既存のイベントリスナーを削除（重複を防ぐ）
+    const existingHandler = container._storeCardClickHandler;
+    if (existingHandler) {
+        container.removeEventListener('click', existingHandler);
+    }
+
+    // 新しいイベントハンドラーを作成
+    const clickHandler = (e) => {
+        // クリックされた要素から親方向に向かって、.store-cardクラスを持つ要素を検索
+        const card = e.target.closest('.store-card');
+        
+        if (card && card.dataset.storeId) {
+            // data-store-id属性から値を取得（文字列として取得される）
+            const storeId = card.dataset.storeId;
             if (onCardClick && typeof onCardClick === 'function') {
+                // コールバック関数にそのまま渡す（文字列または数値の判定はコールバック側で行う）
+                e.stopPropagation(); // イベントの伝播を停止
                 onCardClick(storeId);
             }
         }
-    });
+    };
+    
+    // イベントハンドラーを保存（後で削除できるように）
+    container._storeCardClickHandler = clickHandler;
+    container.addEventListener('click', clickHandler);
 }

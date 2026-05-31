@@ -14,16 +14,17 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 # VITE_STORE_AUTH_EMAIL_DOMAIN=flyer-store.auth
 
 # ============================================
-# 外部API設定（後で追加 - コストがかかるAPI）
+# 外部API設定（OCR処理用）
 # ============================================
-# Google Maps Directions API（徒歩時間計算用）
-# GOOGLE_MAPS_API_KEY=your-google-maps-api-key
-
 # Google Cloud Vision API（OCR処理用）
-# GOOGLE_CLOUD_VISION_API_KEY=your-vision-api-key
+# 無料枠: $300の無料クレジット（90日間）
+# 詳細: docs/API関連/環境変数設定ガイド.md
+VITE_GOOGLE_CLOUD_VISION_API_KEY=your-google-cloud-vision-api-key
 
-# OpenAI API（構造化処理用）
-# OPENAI_API_KEY=your-openai-api-key
+# Google Gemini API（OCR結果の構造化用）
+# 無料枠: 個人開発・テスト目的でほぼ無制限に無料
+# 詳細: docs/API関連/AIのAPI代替案調査.md
+VITE_GOOGLE_GEMINI_API_KEY=your-google-gemini-api-key
 
 # ============================================
 # 店舗検索API設定（オプション）

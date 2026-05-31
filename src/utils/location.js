@@ -12,7 +12,6 @@ import { getFromLocalStorage, saveToLocalStorage } from './helpers.js';
 export async function getUserLocation() {
     const cachedLocation = getFromLocalStorage('userLocation');
     if (cachedLocation) {
-        console.log('キャッシュされた位置情報を使用:', cachedLocation);
         return cachedLocation;
     }
 
@@ -31,7 +30,6 @@ export async function getUserLocation() {
             };
 
             saveToLocalStorage('userLocation', location);
-            console.log('現在地を取得:', location);
 
             return location;
         } catch (error) {

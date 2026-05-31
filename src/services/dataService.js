@@ -4,6 +4,7 @@
  */
 
 import { supabase, supabaseInitialized } from './supabase.js';
+import { reverseGeocode } from './geocodingService.js';
 
 // 取得したデータを5分間メモリにキャッシュして、データベースへのリクエストを削減
 let cache = {
@@ -14,7 +15,10 @@ let cache = {
     cacheTime: {}
 };
 
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 5 * 60 * 1000; // 5分
+
+// 店舗の重複判定用の距離閾値（約100m）
+const STORE_DUPLICATE_THRESHOLD = 0.001;
 
 /**
  * 指定されたキーのキャッシュが有効期限内かどうかを判定する
@@ -300,8 +304,271 @@ export function clearCache() {
 }
 
 /**
+ * 指定された店舗の住所を更新する
+ * @param {number|string} storeId
+ * @param {string} address
+ * @returns {Promise<Object>} {success: boolean, store?: Object, error?: string}
+ */
+export async function updateStoreAddress(storeId, address) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    if (!address || !address.trim()) {
+        return {
+            success: false,
+            error: '住所が指定されていません。'
+        };
+    }
+
+    const { data, error } = await supabase
+        .from('stores')
+        .update({ address: address.trim() })
+        .eq('id', parseInt(storeId))
+        .select()
+        .single();
+
+    if (error) {
+        console.error('住所更新エラー:', error);
+        return {
+            success: false,
+            error: error.message || '住所更新に失敗しました。'
+        };
+    }
+
+    clearCache();
+
+    return {
+        success: true,
+        store: data
+    };
+}
+
+/**
+ * storesテーブル内のすべてのデータを削除する
+ * 注意: これは非常に危険な操作です。関連するflyers、items、favoritesなどのデータもCASCADE削除されます
+ * @returns {Promise<Object>} {success: boolean, deletedCount?: number, error?: string}
+ */
+export async function deleteAllStores() {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        // すべての店舗IDを取得
+        const { data: stores, error: fetchError } = await supabase
+            .from('stores')
+            .select('id');
+
+        if (fetchError) {
+            console.error('店舗取得エラー:', fetchError);
+            return {
+                success: false,
+                error: `店舗データの取得に失敗しました: ${fetchError.message || fetchError}`
+            };
+        }
+
+        if (!stores || stores.length === 0) {
+            return {
+                success: true,
+                deletedCount: 0
+            };
+        }
+
+        const storeIds = stores.map(store => store.id);
+        const deletedCount = storeIds.length;
+
+        console.log(`削除対象: ${deletedCount}件の店舗`);
+
+        // すべての店舗を削除（CASCADEにより関連データも自動削除）
+        // 個別に削除してエラーを詳細に確認
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (const storeId of storeIds) {
+            const { data, error: singleError } = await supabase
+                .from('stores')
+                .delete()
+                .eq('id', storeId)
+                .select(); // 削除されたレコードを返す
+            
+            if (singleError) {
+                console.error(`店舗ID ${storeId} の削除エラー:`, singleError);
+                console.error('エラー詳細:', JSON.stringify(singleError, null, 2));
+                errors.push(`ID ${storeId}: ${singleError.message || singleError.code || singleError}`);
+                failCount++;
+            } else {
+                console.log(`店舗ID ${storeId} を削除しました`);
+                successCount++;
+            }
+        }
+        
+        if (failCount > 0) {
+            const errorMessage = errors.length > 0 
+                ? errors.join(', ') 
+                : `${failCount}件の削除に失敗しました`;
+            
+            console.error('削除失敗の詳細:', {
+                successCount,
+                failCount,
+                errors
+            });
+            
+            return {
+                success: false,
+                error: `${successCount}件削除成功、${failCount}件削除失敗。エラー: ${errorMessage}。\n\n注意: SupabaseのRLS（Row Level Security）ポリシーでDELETE権限が設定されていない可能性があります。`
+            };
+        }
+
+        // 削除後の確認
+        const { data: remainingStores, count, error: verifyError } = await supabase
+            .from('stores')
+            .select('id', { count: 'exact', head: true });
+        
+        if (verifyError) {
+            console.warn('削除後の確認でエラー:', verifyError);
+        }
+        
+        if (count !== undefined && count > 0) {
+            console.warn(`削除後も${count}件の店舗が残っています`);
+            return {
+                success: false,
+                error: `一部の店舗が削除されませんでした。残り: ${count}件。\n\n注意: SupabaseのRLS（Row Level Security）ポリシーでDELETE権限が設定されていない可能性があります。\n\n解決方法: Supabase DashboardのSQL Editorで以下のマイグレーションを実行してください:\nsupabase/migrations/005_add_delete_policies.sql`
+            };
+        }
+
+        // キャッシュをクリア
+        clearCache();
+
+        console.log(`削除完了: ${deletedCount}件の店舗を削除しました`);
+
+        return {
+            success: true,
+            deletedCount: deletedCount
+        };
+    } catch (error) {
+        console.error('店舗削除エラー:', error);
+        console.error('エラースタック:', error.stack);
+        return {
+            success: false,
+            error: `店舗データの削除中にエラーが発生しました: ${error.message || error}`
+        };
+    }
+}
+
+/**
+ * 指定されたチラシIDに関連する商品情報を削除する
+ * @param {number} flyerId - チラシID
+ * @returns {Promise<Object>} {success: boolean, error?: string}
+ */
+async function deleteItemsByFlyerId(flyerId) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        const { error } = await supabase
+            .from('items')
+            .delete()
+            .eq('flyer_id', flyerId);
+
+        if (error) {
+            console.error(`チラシID ${flyerId} の商品削除エラー:`, error);
+            return {
+                success: false,
+                error: `商品情報の削除に失敗しました: ${error.message}`
+            };
+        }
+
+        return {
+            success: true
+        };
+    } catch (error) {
+        console.error('商品情報の削除エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
+}
+
+/**
+ * 指定された店舗の古いチラシ（is_latest = false）に関連する商品情報を削除する
+ * 新しいチラシがアップロードされた際に、古い商品情報をクリーンアップするために使用
+ * @param {number} storeId - 店舗ID
+ * @returns {Promise<Object>} {success: boolean, deletedCount?: number, error?: string}
+ */
+async function deleteItemsByOldFlyers(storeId) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。'
+        };
+    }
+
+    try {
+        // 指定された店舗の古いチラシ（is_latest = false）のIDを取得
+        const { data: oldFlyers, error: flyersError } = await supabase
+            .from('flyers')
+            .select('id')
+            .eq('store_id', parseInt(storeId))
+            .eq('is_latest', false);
+
+        if (flyersError) {
+            console.error('古いチラシ取得エラー:', flyersError);
+            return {
+                success: false,
+                error: `古いチラシの取得に失敗しました: ${flyersError.message}`
+            };
+        }
+
+        // 古いチラシが存在しない場合は削除する商品もない
+        if (!oldFlyers || oldFlyers.length === 0) {
+            return {
+                success: true,
+                deletedCount: 0
+            };
+        }
+
+        // 古いチラシに関連する商品を削除
+        let deletedCount = 0;
+        for (const flyer of oldFlyers) {
+            const result = await deleteItemsByFlyerId(flyer.id);
+            if (result.success) {
+                deletedCount++;
+            }
+        }
+
+        // キャッシュをクリアして最新データを取得できるようにする
+        clearCache();
+
+        return {
+            success: true,
+            deletedCount: deletedCount
+        };
+    } catch (error) {
+        console.error('古い商品情報の削除エラー:', error);
+        return {
+            success: false,
+            error: `商品情報の削除に失敗しました: ${error.message}`
+        };
+    }
+}
+
+/**
  * 新しいチラシレコードをデータベースに作成する
  * 新規チラシがis_latest=trueの場合、同じ店舗の既存チラシのis_latestをfalseに更新して一貫性を保つ
+ * また、古いチラシ（is_latest = false）に関連する商品情報を削除してデータをクリーンアップする
  * @param {Object} flyerData - チラシデータ
  * @param {number} flyerData.store_id - 店舗ID
  * @param {string} flyerData.image_url - 画像URL
@@ -337,6 +604,21 @@ export async function createFlyer(flyerData) {
         // 新規チラシを最新とする場合、同じ店舗の既存チラシのis_latestフラグをfalseに更新
         // これにより、1店舗あたり最新のチラシは1件のみとなる
         if (is_latest) {
+            // ステップ1: 既存の最新チラシ（is_latest = true）のIDを取得して、その商品を削除
+            const { data: currentLatestFlyers, error: fetchError } = await supabase
+                .from('flyers')
+                .select('id')
+                .eq('store_id', parseInt(store_id))
+                .eq('is_latest', true);
+
+            if (!fetchError && currentLatestFlyers && currentLatestFlyers.length > 0) {
+                // 既存の最新チラシの商品を削除
+                for (const flyer of currentLatestFlyers) {
+                    await deleteItemsByFlyerId(flyer.id);
+                }
+            }
+
+            // ステップ2: 既存チラシのis_latestフラグをfalseに更新
             const { error: updateError } = await supabase
                 .from('flyers')
                 .update({ is_latest: false })
@@ -346,6 +628,10 @@ export async function createFlyer(flyerData) {
             if (updateError) {
                 console.error('既存チラシの更新エラー:', updateError);
             }
+
+            // ステップ3: 既にis_latest = falseになっている古いチラシの商品も削除（クリーンアップ）
+            const cleanupResult = await deleteItemsByOldFlyers(parseInt(store_id));
+            // 古いチラシの商品情報を削除（ログは出力しない）
         }
 
         const insertData = {
@@ -373,13 +659,148 @@ export async function createFlyer(flyerData) {
 
         clearCache();
 
-        console.log('チラシ作成成功:', data);
         return {
             success: true,
             data: data
         };
     } catch (error) {
         console.error('チラシ作成エラー:', error);
+        return {
+            success: false,
+            error: `予期しないエラーが発生しました: ${error.message}`
+        };
+    }
+}
+
+/**
+ * 店舗がデータベースに存在するかチェックし、存在しない場合は追加する
+ * 位置情報（±100m以内）で重複チェックを行う
+ * @param {Object} storeData - 店舗データ
+ * @param {string} storeData.name - 店舗名（必須）
+ * @param {number} storeData.latitude - 緯度（必須）
+ * @param {number} storeData.longitude - 経度（必須）
+ * @param {string} storeData.address - 住所（任意）
+ * @returns {Promise<Object>} {success: boolean, store?: Object, isNew?: boolean, error?: string}
+ */
+export async function addStoreIfNotExists(storeData) {
+    if (!supabaseInitialized) {
+        return {
+            success: false,
+            error: 'Supabaseが初期化されていません。環境変数を確認してください。'
+        };
+    }
+
+    const { name, latitude, longitude, address } = storeData;
+
+    if (!name || latitude === undefined || longitude === undefined) {
+        return {
+            success: false,
+            error: '店舗名、緯度、経度は必須です。'
+        };
+    }
+
+    let resolvedAddress = address && address.trim() !== '' ? address.trim() : null;
+    if (!resolvedAddress && latitude !== undefined && longitude !== undefined) {
+        resolvedAddress = await reverseGeocode(latitude, longitude);
+    }
+
+    try {
+        // 既存の店舗を取得（キャッシュを無視して最新データを取得）
+        const existingStores = await getStores(true);
+
+        // 同じ位置（±100m以内）の店舗が存在するかチェック
+        const isDuplicate = existingStores.some(dbStore => {
+            const latDiff = Math.abs(dbStore.latitude - latitude);
+            const lngDiff = Math.abs(dbStore.longitude - longitude);
+            return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
+        });
+
+        if (isDuplicate) {
+            // 既存の店舗を返す
+            const existingStore = existingStores.find(dbStore => {
+                const latDiff = Math.abs(dbStore.latitude - latitude);
+                const lngDiff = Math.abs(dbStore.longitude - longitude);
+                return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
+            });
+            
+            // 既存店舗の住所がNULLで、新しい住所が取得できている場合は住所を更新
+            if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && resolvedAddress) {
+                const { data: updatedStore, error: updateError } = await supabase
+                    .from('stores')
+                    .update({ address: resolvedAddress })
+                    .eq('id', existingStore.id)
+                    .select()
+                    .single();
+                
+                if (updateError) {
+                    console.error('住所更新エラー:', updateError);
+                    // 更新に失敗しても既存の店舗情報を返す
+                    return {
+                        success: true,
+                        store: existingStore,
+                        isNew: false,
+                        addressUpdated: false
+                    };
+                }
+                
+                // キャッシュをクリアして最新データを取得できるようにする
+                clearCache();
+                
+                return {
+                    success: true,
+                    store: updatedStore,
+                    isNew: false,
+                    addressUpdated: true
+                };
+            }
+            
+            return {
+                success: true,
+                store: existingStore,
+                isNew: false,
+                addressUpdated: false
+            };
+        }
+
+        // 新しい店舗を追加
+        const insertData = {
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+            address: resolvedAddress || null,
+            nearest_station: null,
+            nearest_station_lat: null,
+            nearest_station_lng: null,
+            summary_walk_minutes: null,
+            summary_best_item_name: null,
+            summary_best_item_price: null,
+            summary_best_item_id: null
+        };
+
+        const { data, error } = await supabase
+            .from('stores')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('店舗追加エラー:', error);
+            return {
+                success: false,
+                error: `店舗の追加に失敗しました: ${error.message}`
+            };
+        }
+
+        // キャッシュをクリアして最新データを取得できるようにする
+        clearCache();
+
+        return {
+            success: true,
+            store: data,
+            isNew: true
+        };
+    } catch (error) {
+        console.error('店舗追加エラー:', error);
         return {
             success: false,
             error: `予期しないエラーが発生しました: ${error.message}`
@@ -425,7 +846,6 @@ export async function updateFlyer(flyerId, updateData) {
 
         clearCache();
 
-        console.log('チラシ更新成功:', data);
         return {
             success: true,
             data: data
