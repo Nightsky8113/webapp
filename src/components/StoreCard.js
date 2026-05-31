@@ -1,14 +1,18 @@
 import { escapeHtml, formatPrice } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
+import { isExternalStore, toValidStoreId } from '../utils/storeHelpers.js';
+import { MAX_WALKING_TIME_TIMEOUT } from '../utils/constants.js';
 
 /**
  * 店舗情報を表示するカードコンポーネントを生成する
  * 店舗名、チラシ画像、最安商品情報、距離、最寄り駅などの情報を表示する
  * 外部APIから取得した店舗には商品情報がない場合があるため、その場合は表示を調整する
  */
-export async function StoreCard(store, flyer, distance) {
+export async function StoreCard(store, flyer, distance, options = {}) {
     if (!store) return '';
+
+    const { skipWalkingTime = false } = options;
 
     const storeName = escapeHtml(store.name);
     // null値や空文字列の場合は空文字列にする（「null」という文字列が表示されるのを防ぐ）
@@ -23,21 +27,17 @@ export async function StoreCard(store, flyer, distance) {
     const imageUrl = flyer?.image_url || thumbnailUrl;
     const distanceText = distance !== undefined ? `${distance.toFixed(1)} km` : '-';
     const station = escapeHtml(store.nearest_station || '');
-    const isFromAPI = store.is_from_api || false;
-    
-    // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
-    // 外部APIから取得した店舗はデータベースに存在しないため、徒歩時間を取得しない
-    // タイムアウトを設定して、長時間待機しないようにする
+    const isFromAPI = isExternalStore(store);
+
     let walkMinutes = null;
-    if (!isFromAPI) {
+    if (!skipWalkingTime && !isFromAPI && toValidStoreId(store.id) != null) {
         try {
             walkMinutes = await Promise.race([
                 getWalkingTime(store.id),
-                new Promise((resolve) => setTimeout(() => resolve(null), 2000)) // 2秒でタイムアウト
+                new Promise((resolve) => setTimeout(() => resolve(null), MAX_WALKING_TIME_TIMEOUT))
             ]);
         } catch (error) {
             console.warn(`店舗 ${store.id} の徒歩時間取得エラー:`, error);
-            walkMinutes = null;
         }
     }
 

@@ -5,6 +5,7 @@
  */
 
 import { supabase, supabaseInitialized } from './supabase.js';
+import { toValidStoreId } from '../utils/storeHelpers.js';
 
 /**
  * OSRM APIを使用して2点間の徒歩ルートと時間を取得する
@@ -64,20 +65,12 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
         console.warn('Supabaseが初期化されていません。徒歩時間を取得できません。');
         return null;
     }
-    
-    // 外部APIから取得した店舗（文字列ID）の場合は処理をスキップ
-    if (typeof storeId === 'string' && (storeId.startsWith('overpass_') || storeId.startsWith('api_'))) {
+
+    const numericId = toValidStoreId(storeId);
+    if (numericId == null) {
         return null;
     }
-    
-    // 店舗IDが整数でない場合はエラー
-    const numericId = parseInt(storeId);
-    if (isNaN(numericId)) {
-        console.warn(`無効な店舗ID: ${storeId}`);
-        return null;
-    }
-    
-    // 店舗情報を取得
+
     const { data: store, error: storeError } = await supabase
         .from('stores')
         .select('summary_walk_minutes, nearest_station_lat, nearest_station_lng, latitude, longitude')
@@ -125,7 +118,7 @@ export async function getWalkingTime(storeId, forceRecalculate = false) {
     const { error: updateError } = await supabase
         .from('stores')
         .update({ summary_walk_minutes: walkMinutes })
-        .eq('id', storeId);
+        .eq('id', numericId);
     
     if (updateError) {
         console.error('徒歩時間保存エラー:', updateError);

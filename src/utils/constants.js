@@ -5,6 +5,7 @@
 
 // 店舗検索関連
 export const STORE_SEARCH_RADIUS = 2000; // 検索半径（メートル、デフォルト2km）
+export const STORE_DUPLICATE_THRESHOLD = 0.001; // 重複判定（約100m）
 
 // タイムアウト・待機時間（ミリ秒）
 export const TIMEOUT_SHORT = 100; // 短い待機時間

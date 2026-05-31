@@ -1,14 +1,15 @@
 import { getStoreById, getLatestFlyerByStoreId, getItemsByFlyerId, updateStoreAddress } from '../services/dataService.js';
+import { toValidStoreId } from '../utils/storeHelpers.js';
 import { reverseGeocode } from '../services/geocodingService.js';
 import { escapeHtml, formatPrice, formatDate, getQueryParamsFromHash } from '../utils/helpers.js';
 import { loadAndRenderTemplate } from '../utils/template.js';
 import { getWalkingTime } from '../services/walkingTimeService.js';
-import { 
-    MAX_RETRIES, 
-    RETRY_DELAY, 
-    MAP_HEIGHT, 
-    MAP_ZOOM_DEFAULT, 
-    MAP_ZOOM_MAX, 
+import {
+    MAX_RETRIES,
+    RETRY_DELAY,
+    MAP_HEIGHT,
+    MAP_ZOOM_DEFAULT,
+    MAP_ZOOM_MAX,
     MAP_BOUNDS_PADDING,
     TIMEOUT_LONG,
     TIMEOUT_VERY_LONG,
@@ -17,11 +18,21 @@ import {
 
 /**
  * 指定された店舗の詳細情報ページのコンテンツを生成する
- * 店舗情報、最新チラシ画像、商品情報、距離、お気に入り機能などを表示する
  */
 export async function StoreDetailPage(storeId, userLocation) {
-    const store = await getStoreById(storeId);
-    const flyer = await getLatestFlyerByStoreId(storeId);
+    const validStoreId = toValidStoreId(storeId);
+    if (validStoreId == null) {
+        return `
+            <div class="empty-state">
+              <div class="empty-icon">❌</div>
+              <p class="empty-text">店舗が見つかりませんでした</p>
+              <button id="back-button" class="btn-primary mt-4">ホームに戻る</button>
+            </div>
+          `;
+    }
+
+    const store = await getStoreById(validStoreId);
+    const flyer = await getLatestFlyerByStoreId(validStoreId);
 
     // 店舗が見つからない場合
     if (!store) {
@@ -94,7 +105,7 @@ export async function StoreDetailPage(storeId, userLocation) {
     const updatedAt = flyer ? formatDate(flyer.updated_at) : '-';
     
     // 徒歩時間を取得（データベースに保存されている場合はそれを使用、なければAPIで計算）
-    const walkMinutes = await getWalkingTime(storeId);
+    const walkMinutes = await getWalkingTime(validStoreId);
     
     const templateData = {
         storeNotFound: false,

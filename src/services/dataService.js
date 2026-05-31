@@ -5,20 +5,9 @@
 
 import { supabase, supabaseInitialized } from './supabase.js';
 import { reverseGeocode } from './geocodingService.js';
+import { toValidStoreId, isSameStoreLocation } from '../utils/storeHelpers.js';
 
-// 取得したデータを5分間メモリにキャッシュして、データベースへのリクエストを削減
-let cache = {
-    stores: null,
-    flyers: null,
-    items: null,
-    genres: null,
-    cacheTime: {}
-};
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5分
-
-// 店舗の重複判定用の距離閾値（約100m）
-const STORE_DUPLICATE_THRESHOLD = 0.001;
+export { toValidStoreId } from '../utils/storeHelpers.js';
 
 /**
  * 指定されたキーのキャッシュが有効期限内かどうかを判定する
@@ -59,10 +48,15 @@ export async function getStores(forceRefresh = false) {
  * 店舗詳細ページなどで使用される
  */
 export async function getStoreById(storeId) {
+    const id = toValidStoreId(storeId);
+    if (id == null) {
+        return null;
+    }
+
     const { data, error } = await supabase
         .from('stores')
         .select('*')
-        .eq('id', parseInt(storeId))
+        .eq('id', id)
         .single();
 
     if (error) {
@@ -102,21 +96,25 @@ export async function getFlyers(forceRefresh = false) {
  * is_latestフラグがtrueのチラシを優先的に取得し、見つからない場合は最新の更新日時のチラシを返す
  */
 export async function getLatestFlyerByStoreId(storeId) {
+    const id = toValidStoreId(storeId);
+    if (id == null) {
+        return null;
+    }
+
     const { data, error } = await supabase
         .from('flyers')
         .select('*')
-        .eq('store_id', parseInt(storeId))
+        .eq('store_id', id)
         .eq('is_latest', true)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
 
     if (error) {
-        // is_latestフラグが設定されていない場合のフォールバック: 最新更新日時のチラシを取得
         const { data: latestData } = await supabase
             .from('flyers')
             .select('*')
-            .eq('store_id', parseInt(storeId))
+            .eq('store_id', id)
             .order('updated_at', { ascending: false })
             .limit(1)
             .single();
@@ -682,7 +680,7 @@ export async function createFlyer(flyerData) {
  * @param {string} storeData.address - 住所（任意）
  * @returns {Promise<Object>} {success: boolean, store?: Object, isNew?: boolean, error?: string}
  */
-export async function addStoreIfNotExists(storeData) {
+export async function addStoreIfNotExists(storeData, options = {}) {
     if (!supabaseInitialized) {
         return {
             success: false,
@@ -691,6 +689,7 @@ export async function addStoreIfNotExists(storeData) {
     }
 
     const { name, latitude, longitude, address } = storeData;
+    const { existingStores: existingStoresInput, skipGeocode = false } = options;
 
     if (!name || latitude === undefined || longitude === undefined) {
         return {
@@ -700,28 +699,18 @@ export async function addStoreIfNotExists(storeData) {
     }
 
     let resolvedAddress = address && address.trim() !== '' ? address.trim() : null;
-    if (!resolvedAddress && latitude !== undefined && longitude !== undefined) {
+    if (!resolvedAddress && !skipGeocode && latitude !== undefined && longitude !== undefined) {
         resolvedAddress = await reverseGeocode(latitude, longitude);
     }
 
     try {
-        // 既存の店舗を取得（キャッシュを無視して最新データを取得）
-        const existingStores = await getStores(true);
+        const existingStores = existingStoresInput ?? await getStores(true);
 
-        // 同じ位置（±100m以内）の店舗が存在するかチェック
-        const isDuplicate = existingStores.some(dbStore => {
-            const latDiff = Math.abs(dbStore.latitude - latitude);
-            const lngDiff = Math.abs(dbStore.longitude - longitude);
-            return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
-        });
+        const candidate = { latitude, longitude };
+        const isDuplicate = existingStores.some((dbStore) => isSameStoreLocation(dbStore, candidate));
 
         if (isDuplicate) {
-            // 既存の店舗を返す
-            const existingStore = existingStores.find(dbStore => {
-                const latDiff = Math.abs(dbStore.latitude - latitude);
-                const lngDiff = Math.abs(dbStore.longitude - longitude);
-                return latDiff < STORE_DUPLICATE_THRESHOLD && lngDiff < STORE_DUPLICATE_THRESHOLD;
-            });
+            const existingStore = existingStores.find((dbStore) => isSameStoreLocation(dbStore, candidate));
             
             // 既存店舗の住所がNULLで、新しい住所が取得できている場合は住所を更新
             if (existingStore && (!existingStore.address || existingStore.address.trim() === '') && resolvedAddress) {

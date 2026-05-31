@@ -1,6 +1,6 @@
 import { getStoreAccount, getAuthRequiredHTML, attachAuthRequiredEvents, signOutStore } from '../services/storeAuthService.js';
 import { uploadAndSaveFlyer } from '../services/storageService.js';
-import { escapeHtml } from '../utils/helpers.js';
+import { showImagePreview, showUploadStatus, resetUploadPreview } from '../utils/uploadUi.js';
 
 /**
  * 店舗向けチラシアップロード（ログイン必須・store_id 自動紐付け）
@@ -86,9 +86,7 @@ export async function attachStoreUploadPageEvents() {
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file && previewArea) {
-                showPreview(file, previewArea);
-            }
+            if (file) showImagePreview(file, previewArea);
         });
     }
 
@@ -98,7 +96,7 @@ export async function attachStoreUploadPageEvents() {
 
             const fileInputEl = document.getElementById('file-input');
             if (!fileInputEl?.files[0]) {
-                showStatus(uploadStatus, 'エラー: ファイルを選択してください。', 'error');
+                showUploadStatus(uploadStatus, 'エラー: ファイルを選択してください。', 'error');
                 return;
             }
 
@@ -108,7 +106,7 @@ export async function attachStoreUploadPageEvents() {
                 uploadButton.disabled = true;
                 uploadButton.textContent = 'アップロード中...';
             }
-            showStatus(uploadStatus, 'アップロード中...', 'loading');
+            showUploadStatus(uploadStatus, 'アップロード中...', 'loading');
 
             try {
                 const result = await uploadAndSaveFlyer(file, storeId, {
@@ -117,19 +115,16 @@ export async function attachStoreUploadPageEvents() {
                 });
 
                 if (result.success) {
-                    showStatus(uploadStatus, `アップロード成功（チラシID: ${result.flyer.id}）`, 'success');
+                    showUploadStatus(uploadStatus, `アップロード成功（チラシID: ${result.flyer.id}）`, 'success');
                     uploadForm.reset();
-                    if (previewArea) {
-                        previewArea.classList.add('hidden');
-                        previewArea.innerHTML = '';
-                    }
+                    resetUploadPreview(previewArea);
                     setTimeout(() => uploadStatus?.classList.add('hidden'), 3000);
                 } else {
-                    showStatus(uploadStatus, `エラー: ${result.error}`, 'error');
+                    showUploadStatus(uploadStatus, `エラー: ${result.error}`, 'error');
                 }
             } catch (error) {
                 console.error('アップロードエラー:', error);
-                showStatus(uploadStatus, `予期しないエラー: ${error.message}`, 'error');
+                showUploadStatus(uploadStatus, `予期しないエラー: ${error.message}`, 'error');
             } finally {
                 if (uploadButton) {
                     uploadButton.disabled = false;
@@ -140,35 +135,3 @@ export async function attachStoreUploadPageEvents() {
     }
 }
 
-function showPreview(file, previewArea) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        previewArea.innerHTML = `
-            <div class="preview-container">
-                <p class="preview-label">プレビュー:</p>
-                <img src="${e.target.result}" alt="プレビュー" class="preview-image" />
-                <p class="preview-info">ファイル名: ${escapeHtml(file.name)}</p>
-                <p class="preview-info">ファイルサイズ: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            </div>
-        `;
-        previewArea.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
-}
-
-function showStatus(statusElement, message, type) {
-    if (!statusElement) return;
-    statusElement.textContent = message;
-    statusElement.className = `upload-status ${type}`;
-    statusElement.classList.remove('hidden');
-    if (type === 'error') {
-        statusElement.style.color = '#dc2626';
-        statusElement.style.backgroundColor = '#fee2e2';
-    } else if (type === 'success') {
-        statusElement.style.color = '#16a34a';
-        statusElement.style.backgroundColor = '#dcfce7';
-    } else if (type === 'loading') {
-        statusElement.style.color = '#2563eb';
-        statusElement.style.backgroundColor = '#dbeafe';
-    }
-}
