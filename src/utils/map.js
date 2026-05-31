@@ -64,8 +64,9 @@ export function initMap(containerId, lat, lng, zoom = 15) {
  * 地図上に店舗マーカーを追加する
  * マーカーをクリックするとポップアップで店舗情報を表示する
  * popupContentにボタンが含まれる場合、data-store-id属性を使用してイベントリスナーを設定する
+ * @param {Object} [options] - onPopupOpen(popupElement) ポップアップ表示時のコールバック
  */
-export function addStoreMarker(lat, lng, storeName, popupContent) {
+export function addStoreMarker(lat, lng, storeName, popupContent, options = {}) {
     if (!mapInstance) {
         console.error('地図が初期化されていません');
         return null;
@@ -75,7 +76,6 @@ export function addStoreMarker(lat, lng, storeName, popupContent) {
         .addTo(mapInstance)
         .bindPopup(popupContent)
         .on('popupopen', () => {
-            // ポップアップが開いたときに、ボタンにイベントリスナーを追加
             const popup = marker.getPopup();
             if (popup) {
                 const popupElement = popup.getElement();
@@ -84,13 +84,15 @@ export function addStoreMarker(lat, lng, storeName, popupContent) {
                     if (storeButton) {
                         const storeId = storeButton.getAttribute('data-store-id');
                         if (storeId) {
-                            // 既存のイベントリスナーを削除してから追加（重複を防ぐ）
                             const newButton = storeButton.cloneNode(true);
                             storeButton.parentNode.replaceChild(newButton, storeButton);
                             newButton.addEventListener('click', () => {
                                 window.location.hash = `/store/${storeId}`;
                             });
                         }
+                    }
+                    if (typeof options.onPopupOpen === 'function') {
+                        options.onPopupOpen(popupElement);
                     }
                 }
             }
@@ -145,6 +147,12 @@ export function fitBounds(userLocation = null) {
 
     if (bounds.isValid()) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
+
+export function focusMapOn(lat, lng, zoom = 16) {
+    if (mapInstance) {
+        mapInstance.setView([lat, lng], zoom);
     }
 }
 

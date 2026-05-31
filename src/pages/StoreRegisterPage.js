@@ -2,12 +2,13 @@ import { searchNearbyStores } from '../services/storeSearchService.js';
 import { registerStoreAccount, getRegisteredStoreByOsm } from '../services/storeAuthService.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { getDefaultLocation, requestUserLocation } from '../utils/location.js';
+import { TIMEOUT_SHORT } from '../utils/constants.js';
 
 let selectedOsmStore = null;
 let searchResults = [];
 
 /**
- * 店舗登録ページ（OSM発見 → 確認 → システムがログインIDを発行）
+ * 店舗登録ページ（OSM発見 → 地図で確認 → ログインID発行）
  */
 export async function StoreRegisterPage() {
     selectedOsmStore = null;
@@ -22,13 +23,14 @@ export async function StoreRegisterPage() {
 
       <div id="register-flow">
         <div class="info-box blue">
-          <p>OpenStreetMapで自店を選ぶと、<strong>6桁の店舗ログインID</strong>と<strong>初期パスワード</strong>が自動で発行されます。メールアドレスは不要です。</p>
+          <p>OpenStreetMapで自店を選ぶと、<strong>6桁の店舗ログインID</strong>と<strong>初期パスワード</strong>が自動で発行されます。地図または一覧から自店を選択してください。</p>
         </div>
 
         <section class="upload-form-card space-y-4">
           <h2 class="text-xl font-bold text-gray-800">1. 近くのスーパーを検索</h2>
           <button type="button" id="search-osm-btn" class="btn-primary">現在地付近を検索</button>
           <p id="search-status" class="text-sm text-gray-500"></p>
+          <div id="register-map" class="map-container hidden"></div>
           <div id="osm-results" class="space-y-2"></div>
         </section>
 
@@ -86,10 +88,12 @@ export async function attachStoreRegisterPageEvents() {
     document.getElementById('search-osm-btn')?.addEventListener('click', async () => {
         const statusEl = document.getElementById('search-status');
         const resultsEl = document.getElementById('osm-results');
+        const mapEl = document.getElementById('register-map');
         if (!statusEl || !resultsEl) return;
 
         statusEl.textContent = '検索中...';
         resultsEl.innerHTML = '';
+        mapEl?.classList.add('hidden');
 
         let loc;
         try {
@@ -98,6 +102,7 @@ export async function attachStoreRegisterPageEvents() {
             loc = getDefaultLocation();
             statusEl.textContent = '位置情報を取得できなかったため、デフォルト位置で検索します。';
         }
+
         try {
             searchResults = await searchNearbyStores(loc.lat, loc.lng, 3000);
             if (searchResults.length === 0) {
@@ -105,10 +110,14 @@ export async function attachStoreRegisterPageEvents() {
                 return;
             }
 
-            statusEl.textContent = `${searchResults.length}件見つかりました。自店を選択してください。`;
+            statusEl.textContent = `${searchResults.length}件見つかりました。地図または一覧から自店を選択してください。`;
 
-            const itemsHtml = await Promise.all(searchResults.map(async (store) => {
-                const claimed = await getRegisteredStoreByOsm(store.osm_type, store.osm_id);
+            const claimedFlags = await Promise.all(
+                searchResults.map((store) => getRegisteredStoreByOsm(store.osm_type, store.osm_id))
+            );
+
+            const itemsHtml = searchResults.map((store, index) => {
+                const claimed = claimedFlags[index];
                 const disabled = claimed ? 'disabled' : '';
                 const badge = claimed
                     ? '<span class="text-xs text-red-600">登録済み</span>'
@@ -124,13 +133,17 @@ export async function attachStoreRegisterPageEvents() {
                     ${badge}
                   </button>
                 `;
-            }));
+            });
 
             resultsEl.innerHTML = itemsHtml.join('');
 
             resultsEl.querySelectorAll('.osm-pick-btn:not([disabled])').forEach((btn) => {
                 btn.addEventListener('click', () => selectOsmStore(btn));
             });
+
+            setTimeout(() => {
+                renderRegisterMap(loc, claimedFlags);
+            }, TIMEOUT_SHORT);
         } catch (err) {
             console.error(err);
             statusEl.textContent = '検索に失敗しました。';
@@ -181,9 +194,55 @@ export async function attachStoreRegisterPageEvents() {
     });
 }
 
+async function renderRegisterMap(userLocation, claimedFlags) {
+    const mapEl = document.getElementById('register-map');
+    if (!mapEl || !userLocation) return;
+
+    mapEl.classList.remove('hidden');
+
+    const { initMap, addStoreMarker, clearMarkers, fitBounds } = await import('../utils/map.js');
+
+    initMap('register-map', userLocation.lat, userLocation.lng);
+    clearMarkers();
+
+    searchResults.forEach((store, index) => {
+        if (claimedFlags[index]) return;
+
+        const name = escapeHtml(store.name);
+        const distance = `${store.distance.toFixed(1)} km`;
+        const osmType = escapeHtml(store.osm_type);
+        const osmId = store.osm_id;
+
+        const popupContent = `
+            <b>${name}</b><br>
+            📍 ${distance}<br>
+            <button type="button" class="pick-osm-map-btn mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              data-osm-type="${osmType}" data-osm-id="${osmId}">
+              この店舗を選択
+            </button>
+        `;
+
+        addStoreMarker(store.latitude, store.longitude, store.name, popupContent, {
+            onPopupOpen: (popupEl) => {
+                const pickBtn = popupEl?.querySelector('.pick-osm-map-btn');
+                if (pickBtn) {
+                    pickBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        selectOsmStoreByIds(pickBtn.dataset.osmType, parseInt(pickBtn.dataset.osmId, 10));
+                    });
+                }
+            }
+        });
+    });
+
+    fitBounds(userLocation);
+}
+
 function selectOsmStore(btn) {
-    const osmType = btn.dataset.osmType;
-    const osmId = parseInt(btn.dataset.osmId, 10);
+    selectOsmStoreByIds(btn.dataset.osmType, parseInt(btn.dataset.osmId, 10), btn);
+}
+
+function selectOsmStoreByIds(osmType, osmId, listBtn = null) {
     selectedOsmStore = searchResults.find(
         (s) => s.osm_type === osmType && s.osm_id === osmId
     );
@@ -199,13 +258,20 @@ function selectOsmStore(btn) {
     document.querySelectorAll('.osm-pick-btn').forEach((b) => {
         b.classList.remove('ring-2', 'ring-blue-500');
     });
-    btn.classList.add('ring-2', 'ring-blue-500');
+
+    const targetBtn = listBtn || document.querySelector(
+        `.osm-pick-btn[data-osm-type="${osmType}"][data-osm-id="${osmId}"]`
+    );
+    targetBtn?.classList.add('ring-2', 'ring-blue-500');
+
+    import('../utils/map.js').then(({ focusMapOn }) => {
+        focusMapOn(selectedOsmStore.latitude, selectedOsmStore.longitude, 17);
+    });
 }
 
 function showIssuedCredentials(loginId, password, storeId) {
     document.getElementById('register-flow')?.classList.add('hidden');
-    const section = document.getElementById('credentials-section');
-    section?.classList.remove('hidden');
+    document.getElementById('credentials-section')?.classList.remove('hidden');
 
     const loginEl = document.getElementById('issued-login-id');
     const passEl = document.getElementById('issued-password');
