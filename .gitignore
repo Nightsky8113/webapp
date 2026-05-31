@@ -5,3 +5,7 @@ dist/
 *.log
 .vercel
 .env*.local
+*.code-workspace
+C:\network\webapp - Copy (2)\DEPLOYMENT_GUIDE.md
+C:\network\webapp - Copy (2)\PROGRESS_REPORT.md
+SETUP_GUIDE.md
