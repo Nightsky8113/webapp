@@ -9,6 +9,16 @@ import { toValidStoreId, isSameStoreLocation } from '../utils/storeHelpers.js';
 
 export { toValidStoreId } from '../utils/storeHelpers.js';
 
+let cache = {
+    stores: null,
+    flyers: null,
+    items: null,
+    genres: null,
+    cacheTime: {}
+};
+
+const CACHE_DURATION = 5 * 60 * 1000;
+
 /**
  * 指定されたキーのキャッシュが有効期限内かどうかを判定する
  * キャッシュが存在しないか、有効期限を過ぎている場合はfalseを返す
